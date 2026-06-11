@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personal Dashboard</title>
+<style>
+/* ============================================================
+   THEME + BASE
+   ============================================================ */
+:root {
+  --bg: #0f1115;
+  --surface: #1a1d24;
+  --surface-2: #232733;
+  --text: #e8eaf0;
+  --muted: #8b91a0;
+  --accent: #4f8cff;
+  --accent-soft: rgba(79, 140, 255, 0.15);
+  --danger: #ff5d5d;
+  --ok: #3ddc84;
+  --warn: #ffb648;
+  --p1: #ff5d5d;   /* high priority */
+  --p2: #ffb648;   /* medium priority */
+  --p3: #8b91a0;   /* low priority */
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  min-height: 40px;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; }
+button.danger-btn { color: var(--danger); }
+button.ghost { background: transparent; border: 1px solid var(--surface-2); }
+button.icon-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  min-height: 32px;
+  color: var(--muted);
+  font-size: 15px;
+}
+button.icon-btn:hover { color: var(--text); }
+input[type="text"], input[type="url"], input[type="date"], select, textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--surface-2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus { outline: 1px solid var(--accent); }
+textarea { resize: vertical; min-height: 110px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ============================================================
+   HEADER + TABS
+   ============================================================ */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 6px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+header h1 { font-size: 20px; margin: 0; white-space: nowrap; }
+.header-actions { display: flex; gap: 6px; }
+.header-actions button { min-height: 36px; padding: 6px 10px; font-size: 14px; }
+
+nav#tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 8px 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  scrollbar-width: thin;
+}
+nav#tabs button {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+nav#tabs button.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+nav#tabs button.add-tab { color: var(--accent); font-weight: bold; }
+
+/* ============================================================
+   LAYOUT + CARDS
+   ============================================================ */
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 16px 60px;
+}
+.grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 760px) {
+  .grid { grid-template-columns: 1fr 1fr; }
+  .grid .span-2 { grid-column: span 2; }
+}
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.card h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+
+/* ============================================================
+   STATS
+   ============================================================ */
+.stats-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.stat {
+  flex: 1;
+  min-width: 90px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+.stat .num { font-size: 26px; font-weight: 700; color: var(--accent); }
+.stat .label { font-size: 12px; color: var(--muted); }
+
+/* ============================================================
+   LISTS (tasks, ideas, links)
+   ============================================================ */
+ul.plain { list-style: none; margin: 0; padding: 0; }
+ul.plain li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface-2);
+  min-height: 44px;
+}
+ul.plain li:last-child { border-bottom: none; }
+.grow { flex: 1; min-width: 0; }
+.task-title { overflow-wrap: anywhere; }
+.task-title.done { text-decoration: line-through; color: var(--muted); }
+.meta { font-size: 12px; color: var(--muted); }
+.meta .overdue { color: var(--danger); }
+.prio { font-size: 11px; font-weight: 700; border-radius: 4px; padding: 1px 6px; }
+.prio.p1 { color: var(--p1); border: 1px solid var(--p1); }
+.prio.p2 { color: var(--p2); border: 1px solid var(--p2); }
+.prio.p3 { color: var(--p3); border: 1px solid var(--p3); }
+.proj-label {
+  font-size: 11px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.checkbox {
+  width: 24px; height: 24px;
+  min-height: 24px;
+  flex-shrink: 0;
+  border: 2px solid var(--muted);
+  border-radius: 6px;
+  background: transparent;
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  color: var(--ok);
+}
+.checkbox.checked { border-color: var(--ok); }
+
+/* ============================================================
+   HABITS
+   ============================================================ */
+.habit-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; min-height: 48px; }
+.habit-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 8px 14px;
+  text-align: left;
+  min-height: 44px;
+}
+.habit-pill.done-today { background: rgba(61, 220, 132, 0.12); border-color: var(--ok); }
+.habit-pill .streak { margin-left: auto; color: var(--warn); font-size: 14px; white-space: nowrap; }
+
+/* ============================================================
+   GOALS
+   ============================================================ */
+.goal { padding: 8px 0; border-bottom: 1px solid var(--surface-2); }
+.goal:last-child { border-bottom: none; }
+.goal-head { display: flex; align-items: center; gap: 8px; }
+.bar { background: var(--surface-2); border-radius: 99px; height: 10px; margin-top: 6px; overflow: hidden; }
+.bar > div { background: var(--accent); height: 100%; border-radius: 99px; transition: width 0.2s; }
+.milestones { margin-top: 6px; }
+.milestones li { min-height: 36px; padding: 4px 0; border-bottom: none; font-size: 14px; }
+
+/* ============================================================
+   IDEAS
+   ============================================================ */
+#idea-form { display: flex; gap: 8px; margin-bottom: 8px; }
+.idea-text { overflow-wrap: anywhere; }
+
+/* ============================================================
+   PROJECT VIEW
+   ============================================================ */
+.project-head { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.project-head h2.project-name { font-size: 22px; margin: 0; flex: 1; min-width: 200px; }
+.project-desc { color: var(--muted); margin: 4px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.status-select { width: auto; padding: 6px 10px; }
+.status-badge { font-size: 12px; border-radius: 4px; padding: 2px 8px; }
+.status-active { color: var(--ok); border: 1px solid var(--ok); }
+.status-on-hold { color: var(--warn); border: 1px solid var(--warn); }
+.status-done { color: var(--accent); border: 1px solid var(--accent); }
+
+/* ============================================================
+   DIALOGS
+   ============================================================ */
+dialog {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--surface-2);
+  border-radius: var(--radius);
+  width: min(440px, calc(100vw - 32px));
+  padding: 18px;
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+dialog h3 { margin: 0 0 14px; font-size: 17px; }
+dialog .field { margin-bottom: 12px; }
+dialog label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 Dashboard</h1>
+  <div class="header-actions">
+    <button data-action="export" title="Download a JSON backup">Export</button>
+    <button data-action="import" title="Restore from a JSON backup">Import</button>
+  </div>
+</header>
+
+<nav id="tabs"></nav>
+
+<main>
+  <section id="view-home"></section>
+  <section id="view-project" hidden></section>
+</main>
+
+<input type="file" id="import-file" accept=".json,application/json" hidden>
+
+<!-- ============ DIALOGS ============ -->
+
+<dialog id="dlg-project">
+  <form method="dialog" id="form-project">
+    <h3 id="dlg-project-title">New project</h3>
+    <input type="hidden" name="id">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" required maxlength="80" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea name="description" rows="3"></textarea>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select name="status">
+        <option value="active">Active</option>
+        <option value="on-hold">On hold</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-action="close-dialog">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-task">
+  <form method="dialog" id="form-task">
+    <h3 id="dlg-task-title">New task</h3>
+    <input type="hidden" name="id">
+    <input type="hidden" name="projectId">
+    <div class="field">
+      <label>Title</label>
+      <input type="text" name="title" required maxlength="200" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Priority</label>
+      <select name="priority">
+        <option value="1">High</option>
+        <option value="2" selected>Medium</option>
+        <option value="3">Low</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Due date (optional)</label>
+      <input type="date" name="dueDate">
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-action="close-dialog">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-habit">
+  <form method="dialog" id="form-habit">
+    <h3>New habit</h3>
+    <input type="hidden" name="id">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" required maxlength="80" autocomplete="off">
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-action="close-dialog">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-goal">
+  <form method="dialog" id="form-goal">
+    <h3 id="dlg-goal-title">New goal</h3>
+    <input type="hidden" name="id">
+    <div class="field">
+      <label>Title</label>
+      <input type="text" name="title" required maxlength="120" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Linked project (optional)</label>
+      <select name="projectId"></select>
+    </div>
+    <div class="field">
+      <label>Progress tracking</label>
+      <select name="mode" id="goal-mode">
+        <option value="manual">Manual percentage</option>
+        <option value="milestones">Milestones</option>
+      </select>
+    </div>
+    <div class="field" id="goal-manual-field">
+      <label>Progress: <span id="goal-progress-label">0</span>%</label>
+      <input type="range" name="progress" min="0" max="100" step="5" value="0"
+             oninput="document.getElementById('goal-progress-label').textContent = this.value">
+    </div>
+    <div class="field" id="goal-milestones-field" hidden>
+      <label>Milestones (one per line)</label>
+      <textarea name="milestones" rows="4" placeholder="First milestone&#10;Second milestone"></textarea>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-action="close-dialog">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-link">
+  <form method="dialog" id="form-link">
+    <h3>New link</h3>
+    <input type="hidden" name="context">
+    <div class="field">
+      <label>Title</label>
+      <input type="text" name="title" required maxlength="80" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" name="url" required placeholder="example.com" autocomplete="off">
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-action="close-dialog">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. CONSTANTS + HELPERS
+   ============================================================ */
+const STORAGE_KEY = "personal-dashboard-v1";
+
+function uid(prefix) {
+  const rand = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2));
+  return prefix + "_" + rand;
+}
+
+function toLocalISO(d) {
+  return d.getFullYear() + "-" +
+    String(d.getMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getDate()).padStart(2, "0");
+}
+function todayStr() { return toLocalISO(new Date()); }
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function normalizeUrl(raw) {
+  let url = String(raw || "").trim();
+  if (!url) return null;
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) url = "https://" + url;
+  if (/^javascript:/i.test(url) || /^data:/i.test(url) || /^vbscript:/i.test(url)) return null;
+  return url;
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+const $ = (sel) => document.querySelector(sel);
+
+/* ============================================================
+   2. STATE: load / save / migrate
+   ============================================================ */
+function defaultState() {
+  return {
+    schemaVersion: 1,
+    settings: { lastActiveTab: "home" },
+    projects: [],
+    tasks: [],
+    ideas: [],
+    habits: [],
+    goals: [],
+    quickLinks: [],
+    scratchpad: ""
+  };
+}
+
+function migrate(data) {
+  // Future schema upgrades go here:
+  // switch (data.schemaVersion) { case 1: /* upgrade to 2 */ }
+  return Object.assign(defaultState(), data);
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return defaultState();
+    return migrate(parsed);
+  } catch {
+    return defaultState();
+  }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = load();
+
+/* ============================================================
+   3. DERIVED HELPERS
+   ============================================================ */
+function getProject(id) { return state.projects.find(p => p.id === id); }
+
+function visibleProjects() { return state.projects.filter(p => p.status !== "archived"); }
+function archivedProjects() { return state.projects.filter(p => p.status === "archived"); }
+
+function openTasks() {
+  const archivedIds = new Set(archivedProjects().map(p => p.id));
+  return state.tasks.filter(t => !t.done && !archivedIds.has(t.projectId));
+}
+
+function sortTasks(tasks) {
+  return tasks.slice().sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    if (a.dueDate && b.dueDate && a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
+    if (!!a.dueDate !== !!b.dueDate) return a.dueDate ? -1 : 1;
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return a.createdAt < b.createdAt ? -1 : 1;
+  });
+}
+
+function habitStreak(habit) {
+  const set = new Set(habit.completions);
+  let streak = 0;
+  const d = new Date();
+  // Grace rule: an unchecked today doesn't break the streak yet.
+  if (!set.has(toLocalISO(d))) d.setDate(d.getDate() - 1);
+  while (set.has(toLocalISO(d))) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function goalProgress(goal) {
+  if (goal.mode === "milestones") {
+    const total = goal.milestones.length;
+    if (!total) return 0;
+    return Math.round(goal.milestones.filter(m => m.done).length / total * 100);
+  }
+  return goal.progress || 0;
+}
+
+/* ============================================================
+   4. RENDER
+   ============================================================ */
+function renderAll() {
+  renderTabs();
+  const tab = state.settings.lastActiveTab;
+  const projectExists = tab !== "home" && visibleProjects().some(p => p.id === tab);
+  if (tab === "home" || !projectExists) {
+    state.settings.lastActiveTab = "home";
+    $("#view-home").hidden = false;
+    $("#view-project").hidden = true;
+    renderHome();
+  } else {
+    $("#view-home").hidden = true;
+    $("#view-project").hidden = false;
+    renderProject(tab);
+  }
+}
+
+function renderTabs() {
+  const active = state.settings.lastActiveTab;
+  let html = `<button data-action="switch-tab" data-id="home" class="${active === "home" ? "active" : ""}">🏠 Home</button>`;
+  for (const p of visibleProjects()) {
+    html += `<button data-action="switch-tab" data-id="${p.id}" class="${active === p.id ? "active" : ""}">${escapeHtml(p.name)}</button>`;
+  }
+  html += `<button data-action="add-project" class="add-tab" title="New project">＋</button>`;
+  $("#tabs").innerHTML = html;
+}
+
+/* ---------- Home ---------- */
+function renderHome() {
+  $("#view-home").innerHTML = `
+    <div class="grid">
+      <div class="card span-2">
+        <div class="stats-row">
+          <div class="stat"><div class="num">${state.projects.filter(p => p.status === "active").length}</div><div class="label">Active projects</div></div>
+          <div class="stat"><div class="num">${openTasks().length}</div><div class="label">Open tasks</div></div>
+          <div class="stat"><div class="num">${state.ideas.length}</div><div class="label">Ideas</div></div>
+          <div class="stat"><div class="num">${state.habits.reduce((mx, h) => Math.max(mx, habitStreak(h)), 0)}</div><div class="label">Best streak</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Today's habits <button class="icon-btn" data-action="add-habit" title="New habit">＋</button></h2>
+        ${renderHabits()}
+      </div>
+
+      <div class="card">
+        <h2>Upcoming tasks</h2>
+        ${renderTaskRollup()}
+      </div>
+
+      <div class="card">
+        <h2>Goals <button class="icon-btn" data-action="add-goal" title="New goal">＋</button></h2>
+        ${renderGoals()}
+      </div>
+
+      <div class="card">
+        <h2>Quick links <button class="icon-btn" data-action="add-link" data-id="home" title="New link">＋</button></h2>
+        ${renderLinks(state.quickLinks, "home")}
+      </div>
+
+      <div class="card">
+        <h2>💡 Ideas</h2>
+        <form id="idea-form">
+          <input type="text" id="idea-input" placeholder="Capture an idea…" maxlength="500" autocomplete="off">
+          <button type="submit" class="primary">Add</button>
+        </form>
+        ${renderIdeas()}
+      </div>
+
+      <div class="card span-2">
+        <h2>Scratchpad</h2>
+        <textarea id="scratchpad" placeholder="Jot anything…">${escapeHtml(state.scratchpad)}</textarea>
+      </div>
+
+      ${renderArchivedSection()}
+    </div>`;
+}
+
+function renderHabits() {
+  if (!state.habits.length) return `<p class="empty">No habits yet. Add one to start a streak.</p>`;
+  const today = todayStr();
+  return state.habits.map(h => {
+    const done = h.completions.includes(today);
+    const streak = habitStreak(h);
+    return `
+      <div class="habit-row">
+        <button class="habit-pill ${done ? "done-today" : ""}" data-action="toggle-habit" data-id="${h.id}">
+          <span class="checkbox ${done ? "checked" : ""}">${done ? "✓" : ""}</span>
+          <span>${escapeHtml(h.name)}</span>
+          <span class="streak">${streak > 0 ? "🔥 " + streak : ""}</span>
+        </button>
+        <button class="icon-btn danger-btn" data-action="del-habit" data-id="${h.id}" title="Delete habit">✕</button>
+      </div>`;
+  }).join("");
+}
+
+function renderTaskRollup() {
+  const tasks = sortTasks(openTasks()).slice(0, 10);
+  if (!tasks.length) return `<p class="empty">No open tasks. Add some from a project tab.</p>`;
+  return `<ul class="plain">` + tasks.map(t => taskRowHtml(t, true)).join("") + `</ul>`;
+}
+
+function taskRowHtml(t, showProject) {
+  const proj = getProject(t.projectId);
+  const overdue = t.dueDate && !t.done && t.dueDate < todayStr();
+  const prioLabel = { 1: "HIGH", 2: "MED", 3: "LOW" }[t.priority] || "MED";
+  return `
+    <li>
+      <button class="checkbox ${t.done ? "checked" : ""}" data-action="toggle-task" data-id="${t.id}" title="Toggle done">${t.done ? "✓" : ""}</button>
+      <div class="grow">
+        <div class="task-title ${t.done ? "done" : ""}">${escapeHtml(t.title)}</div>
+        <div class="meta">
+          <span class="prio p${t.priority}">${prioLabel}</span>
+          ${t.dueDate ? `<span class="${overdue ? "overdue" : ""}"> 📅 ${fmtDate(t.dueDate)}${overdue ? " (overdue)" : ""}</span>` : ""}
+          ${showProject && proj ? ` <span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}
+        </div>
+      </div>
+      <button class="icon-btn" data-action="edit-task" data-id="${t.id}" title="Edit">✎</button>
+      <button class="icon-btn danger-btn" data-action="del-task" data-id="${t.id}" title="Delete">✕</button>
+    </li>`;
+}
+
+function renderGoals() {
+  if (!state.goals.length) return `<p class="empty">No goals yet. What are you working toward?</p>`;
+  return state.goals.map(g => {
+    const pct = goalProgress(g);
+    const proj = g.projectId ? getProject(g.projectId) : null;
+    const milestones = g.mode === "milestones" ? `
+      <ul class="plain milestones">
+        ${g.milestones.map(m => `
+          <li>
+            <button class="checkbox ${m.done ? "checked" : ""}" data-action="toggle-milestone" data-id="${g.id}" data-mid="${m.id}">${m.done ? "✓" : ""}</button>
+            <span class="grow ${m.done ? "task-title done" : ""}">${escapeHtml(m.title)}</span>
+          </li>`).join("")}
+      </ul>` : "";
+    return `
+      <div class="goal">
+        <div class="goal-head">
+          <span class="grow">${escapeHtml(g.title)} ${proj ? `<span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}</span>
+          <span class="meta">${pct}%</span>
+          <button class="icon-btn" data-action="edit-goal" data-id="${g.id}" title="Edit">✎</button>
+          <button class="icon-btn danger-btn" data-action="del-goal" data-id="${g.id}" title="Delete">✕</button>
+        </div>
+        <div class="bar"><div style="width:${pct}%"></div></div>
+        ${milestones}
+      </div>`;
+  }).join("");
+}
+
+function renderLinks(links, context) {
+  if (!links.length) return `<p class="empty">No links yet.</p>`;
+  return `<ul class="plain">` + links.map(l => `
+    <li>
+      <a class="grow" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">🔗 ${escapeHtml(l.title)}</a>
+      <button class="icon-btn danger-btn" data-action="del-link" data-id="${l.id}" data-context="${context}" title="Delete">✕</button>
+    </li>`).join("") + `</ul>`;
+}
+
+function renderIdeas() {
+  if (!state.ideas.length) return `<p class="empty">Inbox empty — capture your next spark above.</p>`;
+  const ideas = state.ideas.slice().sort((a, b) => a.createdAt < b.createdAt ? 1 : -1);
+  return `<ul class="plain">` + ideas.map(i => `
+    <li>
+      <span class="grow idea-text">${escapeHtml(i.text)}</span>
+      <button class="icon-btn" data-action="promote-idea" data-id="${i.id}" title="Promote to project">→ project</button>
+      <button class="icon-btn danger-btn" data-action="del-idea" data-id="${i.id}" title="Delete">✕</button>
+    </li>`).join("") + `</ul>`;
+}
+
+function renderArchivedSection() {
+  const archived = archivedProjects();
+  if (!archived.length) return "";
+  return `
+    <div class="card span-2">
+      <h2>Archived projects</h2>
+      <ul class="plain">
+        ${archived.map(p => `
+          <li>
+            <span class="grow">${escapeHtml(p.name)}</span>
+            <button class="icon-btn" data-action="restore-project" data-id="${p.id}">Restore</button>
+            <button class="icon-btn danger-btn" data-action="delete-project" data-id="${p.id}">Delete</button>
+          </li>`).join("")}
+      </ul>
+    </div>`;
+}
+
+/* ---------- Project view ---------- */
+function renderProject(id) {
+  const p = getProject(id);
+  if (!p) { state.settings.lastActiveTab = "home"; renderAll(); return; }
+  const tasks = sortTasks(state.tasks.filter(t => t.projectId === id));
+  const statusLabel = { "active": "Active", "on-hold": "On hold", "done": "Done" }[p.status] || p.status;
+  $("#view-project").innerHTML = `
+    <div class="project-head">
+      <h2 class="project-name">${escapeHtml(p.name)} <span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(statusLabel)}</span></h2>
+      <button class="ghost" data-action="edit-project" data-id="${p.id}">Edit</button>
+      <button class="ghost" data-action="archive-project" data-id="${p.id}">Archive</button>
+      <button class="ghost danger-btn" data-action="delete-project" data-id="${p.id}">Delete</button>
+    </div>
+    ${p.description ? `<p class="project-desc">${escapeHtml(p.description)}</p>` : ""}
+    <div class="grid">
+      <div class="card span-2">
+        <h2>Tasks <button class="icon-btn" data-action="add-task" data-id="${p.id}" title="New task">＋</button></h2>
+        ${tasks.length ? `<ul class="plain">${tasks.map(t => taskRowHtml(t, false)).join("")}</ul>` : `<p class="empty">No tasks yet.</p>`}
+      </div>
+      <div class="card">
+        <h2>Notes</h2>
+        <textarea id="project-notes" data-id="${p.id}" placeholder="Project notes…">${escapeHtml(p.notes)}</textarea>
+      </div>
+      <div class="card">
+        <h2>Links <button class="icon-btn" data-action="add-link" data-id="${p.id}" title="New link">＋</button></h2>
+        ${renderLinks(p.links, p.id)}
+      </div>
+    </div>`;
+}
+
+/* ============================================================
+   5. MUTATIONS / ACTIONS
+   ============================================================ */
+function openDialog(sel) { document.querySelector(sel).showModal(); }
+
+function switchTab(id) {
+  state.settings.lastActiveTab = id;
+  save();
+  renderAll();
+}
+
+const actions = {
+  "switch-tab": (id) => switchTab(id),
+
+  /* --- projects --- */
+  "add-project": () => {
+    const f = $("#form-project");
+    f.reset();
+    f.elements.id.value = "";
+    $("#dlg-project-title").textContent = "New project";
+    openDialog("#dlg-project");
+  },
+  "edit-project": (id) => {
+    const p = getProject(id);
+    if (!p) return;
+    const f = $("#form-project");
+    f.reset();
+    f.elements.id.value = p.id;
+    f.elements.name.value = p.name;
+    f.elements.description.value = p.description;
+    f.elements.status.value = p.status === "archived" ? "active" : p.status;
+    $("#dlg-project-title").textContent = "Edit project";
+    openDialog("#dlg-project");
+  },
+  "archive-project": (id) => {
+    const p = getProject(id);
+    if (!p) return;
+    p.status = "archived";
+    if (state.settings.lastActiveTab === id) state.settings.lastActiveTab = "home";
+    save(); renderAll();
+  },
+  "restore-project": (id) => {
+    const p = getProject(id);
+    if (!p) return;
+    p.status = "active";
+    save(); renderAll();
+  },
+  "delete-project": (id) => {
+    const p = getProject(id);
+    if (!p) return;
+    const taskCount = state.tasks.filter(t => t.projectId === id).length;
+    if (!confirm(`Delete "${p.name}"${taskCount ? ` and its ${taskCount} task(s)` : ""}? This cannot be undone.`)) return;
+    state.projects = state.projects.filter(x => x.id !== id);
+    state.tasks = state.tasks.filter(t => t.projectId !== id);
+    state.goals.forEach(g => { if (g.projectId === id) g.projectId = null; });
+    if (state.settings.lastActiveTab === id) state.settings.lastActiveTab = "home";
+    save(); renderAll();
+  },
+
+  /* --- tasks --- */
+  "add-task": (projectId) => {
+    const f = $("#form-task");
+    f.reset();
+    f.elements.id.value = "";
+    f.elements.projectId.value = projectId;
+    $("#dlg-task-title").textContent = "New task";
+    openDialog("#dlg-task");
+  },
+  "edit-task": (id) => {
+    const t = state.tasks.find(x => x.id === id);
+    if (!t) return;
+    const f = $("#form-task");
+    f.reset();
+    f.elements.id.value = t.id;
+    f.elements.projectId.value = t.projectId;
+    f.elements.title.value = t.title;
+    f.elements.priority.value = String(t.priority);
+    f.elements.dueDate.value = t.dueDate || "";
+    $("#dlg-task-title").textContent = "Edit task";
+    openDialog("#dlg-task");
+  },
+  "toggle-task": (id) => {
+    const t = state.tasks.find(x => x.id === id);
+    if (!t) return;
+    t.done = !t.done;
+    t.completedAt = t.done ? new Date().toISOString() : null;
+    save(); renderAll();
+  },
+  "del-task": (id) => {
+    state.tasks = state.tasks.filter(t => t.id !== id);
+    save(); renderAll();
+  },
+
+  /* --- ideas --- */
+  "promote-idea": (id) => {
+    const idea = state.ideas.find(i => i.id === id);
+    if (!idea) return;
+    const name = idea.text.length > 60 ? idea.text.slice(0, 57) + "…" : idea.text;
+    const project = {
+      id: uid("p"), name, description: idea.text, status: "active",
+      notes: "", links: [], createdAt: new Date().toISOString()
+    };
+    state.projects.push(project);
+    state.ideas = state.ideas.filter(i => i.id !== id);
+    state.settings.lastActiveTab = project.id;
+    save(); renderAll();
+  },
+  "del-idea": (id) => {
+    state.ideas = state.ideas.filter(i => i.id !== id);
+    save(); renderAll();
+  },
+
+  /* --- habits --- */
+  "add-habit": () => {
+    const f = $("#form-habit");
+    f.reset();
+    f.elements.id.value = "";
+    openDialog("#dlg-habit");
+  },
+  "toggle-habit": (id) => {
+    const h = state.habits.find(x => x.id === id);
+    if (!h) return;
+    const today = todayStr();
+    if (h.completions.includes(today)) {
+      h.completions = h.completions.filter(d => d !== today);
+    } else {
+      h.completions.push(today);
+      h.completions.sort();
+    }
+    save(); renderAll();
+  },
+  "del-habit": (id) => {
+    const h = state.habits.find(x => x.id === id);
+    if (!h) return;
+    if (!confirm(`Delete habit "${h.name}" and its history?`)) return;
+    state.habits = state.habits.filter(x => x.id !== id);
+    save(); renderAll();
+  },
+
+  /* --- goals --- */
+  "add-goal": () => {
+    const f = $("#form-goal");
+    f.reset();
+    f.elements.id.value = "";
+    $("#goal-progress-label").textContent = "0";
+    populateGoalProjectSelect(null);
+    syncGoalModeFields();
+    $("#dlg-goal-title").textContent = "New goal";
+    openDialog("#dlg-goal");
+  },
+  "edit-goal": (id) => {
+    const g = state.goals.find(x => x.id === id);
+    if (!g) return;
+    const f = $("#form-goal");
+    f.reset();
+    f.elements.id.value = g.id;
+    f.elements.title.value = g.title;
+    f.elements.mode.value = g.mode;
+    f.elements.progress.value = String(g.progress || 0);
+    $("#goal-progress-label").textContent = String(g.progress || 0);
+    f.elements.milestones.value = g.milestones.map(m => m.title).join("\n");
+    populateGoalProjectSelect(g.projectId);
+    syncGoalModeFields();
+    $("#dlg-goal-title").textContent = "Edit goal";
+    openDialog("#dlg-goal");
+  },
+  "toggle-milestone": (id, el) => {
+    const g = state.goals.find(x => x.id === id);
+    if (!g) return;
+    const m = g.milestones.find(x => x.id === el.dataset.mid);
+    if (!m) return;
+    m.done = !m.done;
+    save(); renderAll();
+  },
+  "del-goal": (id) => {
+    state.goals = state.goals.filter(g => g.id !== id);
+    save(); renderAll();
+  },
+
+  /* --- links --- */
+  "add-link": (context) => {
+    const f = $("#form-link");
+    f.reset();
+    f.elements.context.value = context;
+    openDialog("#dlg-link");
+  },
+  "del-link": (id, el) => {
+    const context = el.dataset.context;
+    if (context === "home") {
+      state.quickLinks = state.quickLinks.filter(l => l.id !== id);
+    } else {
+      const p = getProject(context);
+      if (p) p.links = p.links.filter(l => l.id !== id);
+    }
+    save(); renderAll();
+  },
+
+  /* --- backup --- */
+  "export": () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "dashboard-backup-" + todayStr() + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+  "import": () => $("#import-file").click(),
+
+  "close-dialog": (id, el) => el.closest("dialog").close()
+};
+
+function populateGoalProjectSelect(selectedId) {
+  const sel = $("#form-goal").elements.projectId;
+  sel.innerHTML = `<option value="">— none —</option>` +
+    visibleProjects().map(p =>
+      `<option value="${p.id}" ${p.id === selectedId ? "selected" : ""}>${escapeHtml(p.name)}</option>`
+    ).join("");
+}
+
+function syncGoalModeFields() {
+  const mode = $("#goal-mode").value;
+  $("#goal-manual-field").hidden = mode !== "manual";
+  $("#goal-milestones-field").hidden = mode !== "milestones";
+}
+
+/* ============================================================
+   6. EVENT WIRING
+   ============================================================ */
+document.body.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  const handler = actions[el.dataset.action];
+  if (handler) {
+    e.preventDefault();
+    handler(el.dataset.id, el);
+  }
+});
+
+document.body.addEventListener("submit", (e) => {
+  const form = e.target;
+  // form.id can't be used here: controls named "id" shadow it via the form's
+  // named getter, so read the attribute instead.
+  const formId = form.getAttribute("id");
+
+  if (formId === "idea-form") {
+    e.preventDefault();
+    const input = $("#idea-input");
+    const text = input.value.trim();
+    if (!text) return;
+    state.ideas.push({ id: uid("i"), text, createdAt: new Date().toISOString() });
+    save(); renderAll();
+    $("#idea-input")?.focus();
+    return;
+  }
+
+  if (formId === "form-project") {
+    const d = form.elements;
+    const name = d.name.value.trim();
+    if (!name) return;
+    if (d.id.value) {
+      const p = getProject(d.id.value);
+      if (p) { p.name = name; p.description = d.description.value.trim(); p.status = d.status.value; }
+    } else {
+      const p = {
+        id: uid("p"), name, description: d.description.value.trim(),
+        status: d.status.value, notes: "", links: [], createdAt: new Date().toISOString()
+      };
+      state.projects.push(p);
+      state.settings.lastActiveTab = p.id;
+    }
+    save(); renderAll();
+  }
+
+  if (formId === "form-task") {
+    const d = form.elements;
+    const title = d.title.value.trim();
+    if (!title) return;
+    if (d.id.value) {
+      const t = state.tasks.find(x => x.id === d.id.value);
+      if (t) { t.title = title; t.priority = Number(d.priority.value); t.dueDate = d.dueDate.value || null; }
+    } else {
+      state.tasks.push({
+        id: uid("t"), projectId: d.projectId.value, title,
+        priority: Number(d.priority.value), dueDate: d.dueDate.value || null,
+        done: false, completedAt: null, createdAt: new Date().toISOString()
+      });
+    }
+    save(); renderAll();
+  }
+
+  if (formId === "form-habit") {
+    const d = form.elements;
+    const name = d.name.value.trim();
+    if (!name) return;
+    state.habits.push({ id: uid("h"), name, completions: [], createdAt: new Date().toISOString() });
+    save(); renderAll();
+  }
+
+  if (formId === "form-goal") {
+    const d = form.elements;
+    const title = d.title.value.trim();
+    if (!title) return;
+    const mode = d.mode.value;
+    const lines = d.milestones.value.split("\n").map(s => s.trim()).filter(Boolean);
+    const existing = d.id.value ? state.goals.find(x => x.id === d.id.value) : null;
+    // Rebuild milestones from the textarea, keeping done-status for titles that survive the edit.
+    const oldByTitle = new Map((existing?.milestones || []).map(m => [m.title, m]));
+    const milestones = lines.map(line => {
+      const old = oldByTitle.get(line);
+      return { id: old?.id || uid("m"), title: line, done: old?.done || false };
+    });
+    if (existing) {
+      existing.title = title;
+      existing.projectId = d.projectId.value || null;
+      existing.mode = mode;
+      existing.progress = Number(d.progress.value);
+      existing.milestones = milestones;
+    } else {
+      state.goals.push({
+        id: uid("g"), title, projectId: d.projectId.value || null, mode,
+        progress: Number(d.progress.value), milestones, createdAt: new Date().toISOString()
+      });
+    }
+    save(); renderAll();
+  }
+
+  if (formId === "form-link") {
+    const d = form.elements;
+    const title = d.title.value.trim();
+    const url = normalizeUrl(d.url.value);
+    if (!title) return;
+    if (!url) { alert("That URL doesn't look valid."); e.preventDefault(); return; }
+    const link = { id: uid(d.context.value === "home" ? "q" : "l"), title, url };
+    if (d.context.value === "home") {
+      state.quickLinks.push(link);
+    } else {
+      const p = getProject(d.context.value);
+      if (p) p.links.push(link);
+    }
+    save(); renderAll();
+  }
+});
+
+/* Debounced autosave for free-text areas — no re-render (it would destroy the
+   textarea mid-typing). */
+const saveScratch = debounce((value) => { state.scratchpad = value; save(); }, 400);
+const saveNotes = debounce((id, value) => {
+  const p = getProject(id);
+  if (p) { p.notes = value; save(); }
+}, 400);
+
+document.body.addEventListener("input", (e) => {
+  if (e.target.id === "scratchpad") saveScratch(e.target.value);
+  if (e.target.id === "project-notes") saveNotes(e.target.dataset.id, e.target.value);
+});
+
+/* Goal dialog: switch between manual % and milestone fields. */
+$("#goal-mode").addEventListener("change", syncGoalModeFields);
+
+/* Import */
+$("#import-file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      const looksValid = data && typeof data === "object" &&
+        typeof data.schemaVersion === "number" &&
+        ["projects", "tasks", "ideas", "habits", "goals", "quickLinks"].every(k => Array.isArray(data[k]));
+      if (!looksValid) throw new Error("not a dashboard backup");
+      if (!confirm("Importing replaces ALL current dashboard data. Continue?")) return;
+      state = migrate(data);
+      save(); renderAll();
+    } catch {
+      alert("Import failed: that file isn't a valid dashboard backup.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* ============================================================
+   7. INIT
+   ============================================================ */
+renderAll();
+</script>
+</body>
+</html>
