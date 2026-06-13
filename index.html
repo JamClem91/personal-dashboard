@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="description" content="A private, offline-first personal dashboard for projects, tasks, habits, goals and focus.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>Personal Dashboard</title>
 <style>
 /* ============================================================
@@ -23,6 +28,20 @@
   --p2: #ffb648;   /* medium priority */
   --p3: #8b91a0;   /* low priority */
   --radius: 10px;
+}
+:root[data-theme="light"] {
+  --bg: #f4f5f8;
+  --surface: #ffffff;
+  --surface-2: #e7eaf0;
+  --text: #1b1f27;
+  --muted: #626a78;
+  --accent-soft: rgba(79, 140, 255, 0.14);
+  --danger: #d83a3a;
+  --ok: #1aa35e;
+  --warn: #b9791a;
+  --p1: #d83a3a;
+  --p2: #b9791a;
+  --p3: #626a78;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -57,7 +76,7 @@ button.icon-btn {
   font-size: 15px;
 }
 button.icon-btn:hover { color: var(--text); }
-input[type="text"], input[type="url"], input[type="date"], select, textarea {
+input[type="text"], input[type="url"], input[type="date"], input[type="number"], select, textarea {
   font: inherit;
   color: var(--text);
   background: var(--bg);
@@ -86,6 +105,7 @@ header {
 header h1 { font-size: 20px; margin: 0; white-space: nowrap; }
 .header-actions { display: flex; gap: 6px; }
 .header-actions button { min-height: 36px; padding: 6px 10px; font-size: 14px; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); margin-left: 4px; vertical-align: middle; }
 
 nav#tabs {
   display: flex;
@@ -118,7 +138,7 @@ nav#tabs button.add-tab { color: var(--accent); font-weight: bold; }
 main {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 8px 16px 60px;
+  padding: 8px 16px 80px;
 }
 .grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 760px) {
@@ -139,8 +159,11 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
+.card h2 .h2-actions { display: flex; gap: 2px; align-items: center; }
 .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 4px 0 8px; }
 
 /* ============================================================
    STATS
@@ -156,6 +179,13 @@ main {
 }
 .stat .num { font-size: 26px; font-weight: 700; color: var(--accent); }
 .stat .label { font-size: 12px; color: var(--muted); }
+
+/* Bar charts */
+.chart-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 13px; }
+.chart-row .lbl { width: 78px; color: var(--muted); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart-row .track { flex: 1; background: var(--surface-2); border-radius: 6px; height: 14px; overflow: hidden; }
+.chart-row .fill { background: var(--accent); height: 100%; border-radius: 6px; min-width: 2px; transition: width 0.2s; }
+.chart-row .val { width: 42px; text-align: right; color: var(--muted); flex-shrink: 0; }
 
 /* ============================================================
    LISTS (tasks, ideas, links)
@@ -175,6 +205,7 @@ ul.plain li:last-child { border-bottom: none; }
 .task-title.done { text-decoration: line-through; color: var(--muted); }
 .meta { font-size: 12px; color: var(--muted); }
 .meta .overdue { color: var(--danger); }
+.meta .subcount, .meta .timecount { margin-left: 6px; }
 .prio { font-size: 11px; font-weight: 700; border-radius: 4px; padding: 1px 6px; }
 .prio.p1 { color: var(--p1); border: 1px solid var(--p1); }
 .prio.p2 { color: var(--p2); border: 1px solid var(--p2); }
@@ -200,11 +231,16 @@ ul.plain li:last-child { border-bottom: none; }
   color: var(--ok);
 }
 .checkbox.checked { border-color: var(--ok); }
+.checkbox.sm { width: 20px; height: 20px; min-height: 20px; font-size: 12px; border-width: 2px; }
+
+/* Subtasks */
+.subtasks { list-style: none; margin: 6px 0 0; padding: 0; }
+.subtasks li { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 2px 0; border-bottom: none; font-size: 14px; }
 
 /* ============================================================
    HABITS
    ============================================================ */
-.habit-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; min-height: 48px; }
+.habit-row { display: flex; align-items: center; gap: 6px; padding: 6px 0; min-height: 48px; }
 .habit-pill {
   flex: 1;
   display: flex;
@@ -218,6 +254,31 @@ ul.plain li:last-child { border-bottom: none; }
 }
 .habit-pill.done-today { background: rgba(61, 220, 132, 0.12); border-color: var(--ok); }
 .habit-pill .streak { margin-left: auto; color: var(--warn); font-size: 14px; white-space: nowrap; }
+
+/* Heatmap */
+.heat-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.heat-scroll { overflow-x: auto; padding-bottom: 6px; }
+.heat {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 14px);
+  gap: 3px;
+  width: max-content;
+}
+.heat-cell {
+  width: 14px; height: 14px;
+  min-height: 14px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.heat-cell.l1 { background: var(--accent-soft); }
+.heat-cell.l4 { background: var(--accent); }
+.heat-cell.today { outline: 2px solid var(--text); outline-offset: 1px; }
+.heat-cell.future { opacity: 0.2; cursor: default; }
+.heat-legend { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
 /* ============================================================
    GOALS
@@ -237,7 +298,7 @@ ul.plain li:last-child { border-bottom: none; }
 .idea-text { overflow-wrap: anywhere; }
 
 /* ============================================================
-   PROJECT VIEW
+   PROJECT VIEW + KANBAN
    ============================================================ */
 .project-head { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .project-head h2.project-name { font-size: 22px; margin: 0; flex: 1; min-width: 200px; }
@@ -247,6 +308,55 @@ ul.plain li:last-child { border-bottom: none; }
 .status-active { color: var(--ok); border: 1px solid var(--ok); }
 .status-on-hold { color: var(--warn); border: 1px solid var(--warn); }
 .status-done { color: var(--accent); border: 1px solid var(--accent); }
+
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 2px; gap: 2px; }
+.seg button { background: transparent; border: none; min-height: 32px; padding: 5px 12px; border-radius: 6px; color: var(--muted); }
+.seg button.active { background: var(--accent); color: #fff; }
+
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 700px) { .board { grid-template-columns: 1fr; } }
+.board-col { background: var(--surface); border-radius: 10px; padding: 10px; min-height: 120px; }
+.board-col.drop-target { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.board-col h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 8px; display: flex; justify-content: space-between; }
+.kanban-card { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; cursor: grab; }
+.kanban-card:active { cursor: grabbing; }
+.kanban-card.dragging { opacity: 0.45; }
+.kc-title { margin-bottom: 4px; overflow-wrap: anywhere; }
+.kc-title.done { text-decoration: line-through; color: var(--muted); }
+.kc-actions { display: flex; gap: 2px; margin-top: 6px; flex-wrap: wrap; }
+
+/* ============================================================
+   TODAY / FOCUS VIEW
+   ============================================================ */
+.focus-slots { display: grid; gap: 8px; }
+.focus-slot { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; min-height: 50px; }
+.focus-slot.empty { border: 1px dashed var(--surface-2); background: transparent; color: var(--muted); justify-content: center; }
+.star-btn { background: transparent; border: none; min-height: 32px; color: var(--warn); font-size: 18px; padding: 2px 6px; }
+.star-btn.off { color: var(--muted); }
+
+/* ============================================================
+   CALENDAR
+   ============================================================ */
+.cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cal-title { font-size: 18px; font-weight: 600; flex: 1; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-dow { text-align: center; font-size: 11px; color: var(--muted); text-transform: uppercase; padding-bottom: 2px; }
+.cal-cell { background: var(--surface-2); border-radius: 8px; min-height: 86px; padding: 5px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.cal-cell.dim { opacity: 0.4; }
+.cal-cell.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cal-daynum { font-size: 12px; color: var(--muted); }
+.cal-chip { font-size: 11px; background: var(--surface); border-left: 3px solid var(--accent); border-radius: 4px; padding: 2px 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.cal-chip.p1 { border-left-color: var(--p1); }
+.cal-chip.p2 { border-left-color: var(--p2); }
+.cal-chip.p3 { border-left-color: var(--p3); }
+.cal-chip.done { text-decoration: line-through; color: var(--muted); }
+.cal-chip.overdue { color: var(--danger); }
+.cal-more { font-size: 10px; color: var(--muted); }
+@media (max-width: 600px) {
+  .cal-cell { min-height: 58px; padding: 3px; }
+  .cal-chip { font-size: 10px; padding: 1px 3px; }
+  .cal-grid { gap: 3px; }
+}
 
 /* ============================================================
    DIALOGS
@@ -259,11 +369,49 @@ dialog {
   width: min(440px, calc(100vw - 32px));
   padding: 18px;
 }
+dialog.wide { width: min(720px, calc(100vw - 24px)); }
 dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 dialog h3 { margin: 0 0 14px; font-size: 17px; }
 dialog .field { margin-bottom: 12px; }
 dialog label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
 dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--surface-2); }
+.settings-row:last-child { border-bottom: none; }
+.settings-row .desc { font-size: 12px; color: var(--muted); }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; min-height: 30px; }
+.swatch.active { border-color: var(--text); }
+.review-progress { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.review-step { min-height: 150px; }
+.review-step h4 { margin: 0 0 8px; font-size: 16px; }
+
+/* ============================================================
+   TOASTS + TIMER WIDGET
+   ============================================================ */
+#toast-wrap {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px; align-items: center; z-index: 60;
+}
+.toast {
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--accent); border-radius: 10px;
+  padding: 8px 10px 8px 14px; display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); max-width: 92vw;
+}
+.toast button { min-height: 32px; padding: 4px 12px; }
+
+#timer-widget {
+  position: fixed; right: 16px; bottom: 16px; z-index: 50;
+  background: var(--surface); border: 1px solid var(--surface-2);
+  border-radius: 14px; padding: 12px 14px; width: 210px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+#timer-widget.break { border-color: var(--ok); }
+.timer-phase { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.timer-time { font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.timer-task { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer-controls { display: flex; gap: 6px; margin-top: 8px; }
+.timer-controls button { min-height: 34px; padding: 4px 8px; flex: 1; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -271,16 +419,15 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
 <header>
   <h1>📋 Dashboard</h1>
   <div class="header-actions">
-    <button data-action="export" title="Download a JSON backup">Export</button>
-    <button data-action="import" title="Restore from a JSON backup">Import</button>
+    <button data-action="open-review" id="btn-review" title="Weekly review">🪄 Review</button>
+    <button data-action="open-settings" title="Settings &amp; backup">⚙️</button>
   </div>
 </header>
 
 <nav id="tabs"></nav>
 
 <main>
-  <section id="view-home"></section>
-  <section id="view-project" hidden></section>
+  <section id="view"></section>
 </main>
 
 <input type="file" id="import-file" accept=".json,application/json" hidden>
@@ -335,6 +482,10 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
       <label>Due date (optional)</label>
       <input type="date" name="dueDate">
     </div>
+    <div class="field">
+      <label>Subtasks (one per line, optional)</label>
+      <textarea name="subtasks" rows="3" placeholder="Draft outline&#10;Review with team"></textarea>
+    </div>
     <div class="dialog-actions">
       <button type="button" class="ghost" data-action="close-dialog">Cancel</button>
       <button type="submit" class="primary">Save</button>
@@ -355,6 +506,13 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
       <button type="submit" class="primary">Save</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="dlg-habit-detail" class="wide">
+  <div id="habit-detail-body"></div>
+  <div class="dialog-actions">
+    <button type="button" class="primary" data-action="close-dialog">Close</button>
+  </div>
 </dialog>
 
 <dialog id="dlg-goal">
@@ -411,6 +569,21 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
   </form>
 </dialog>
 
+<dialog id="dlg-review" class="wide">
+  <h3>🪄 Weekly review</h3>
+  <div class="review-progress" id="review-progress"></div>
+  <div class="review-step" id="review-body"></div>
+  <div class="dialog-actions" id="review-actions"></div>
+</dialog>
+
+<dialog id="dlg-settings">
+  <h3>⚙️ Settings &amp; backup</h3>
+  <div id="settings-body"></div>
+  <div class="dialog-actions">
+    <button type="button" class="primary" data-action="close-dialog">Done</button>
+  </div>
+</dialog>
+
 <script>
 "use strict";
 
@@ -418,6 +591,8 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
    1. CONSTANTS + HELPERS
    ============================================================ */
 const STORAGE_KEY = "personal-dashboard-v1";
+const BASE_TITLE = "Personal Dashboard";
+const ACCENT_SWATCHES = ["#4f8cff", "#3ddc84", "#ff5d5d", "#ffb648", "#b985ff", "#ff7ac8", "#22c3c3"];
 
 function uid(prefix) {
   const rand = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2));
@@ -430,6 +605,14 @@ function toLocalISO(d) {
     String(d.getDate()).padStart(2, "0");
 }
 function todayStr() { return toLocalISO(new Date()); }
+function parseISO(iso) { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); }
+function addDays(date, n) { const x = new Date(date); x.setDate(x.getDate() + n); return x; }
+function weekStartISO(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (x.getDay() + 6) % 7; // Monday = 0
+  x.setDate(x.getDate() - dow);
+  return toLocalISO(x);
+}
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -441,6 +624,29 @@ function fmtDate(iso) {
   if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function fmtDuration(sec) {
+  sec = Math.round(sec);
+  if (sec < 60) return sec + "s";
+  const m = Math.round(sec / 60);
+  if (m < 60) return m + "m";
+  const h = Math.floor(m / 60), mm = m % 60;
+  return mm ? h + "h " + mm + "m" : h + "h";
+}
+
+function fmtClock(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+
+function hexToRgba(hex, a) {
+  const h = String(hex || "").replace("#", "");
+  const n = h.length === 3 ? h.split("").map(c => c + c).join("") : h;
+  const r = parseInt(n.slice(0, 2), 16) || 0;
+  const g = parseInt(n.slice(2, 4), 16) || 0;
+  const b = parseInt(n.slice(4, 6), 16) || 0;
+  return "rgba(" + r + "," + g + "," + b + "," + a + ")";
 }
 
 function normalizeUrl(raw) {
@@ -457,28 +663,63 @@ function debounce(fn, ms) {
 }
 
 const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
 
 /* ============================================================
    2. STATE: load / save / migrate
    ============================================================ */
 function defaultState() {
   return {
-    schemaVersion: 1,
-    settings: { lastActiveTab: "home" },
+    schemaVersion: 2,
+    settings: {
+      lastActiveTab: "home",
+      theme: "dark",
+      accent: "#4f8cff",
+      focus: { date: null, taskIds: [] },
+      pomodoro: { workMin: 25, breakMin: 5 },
+      timer: null,
+      notify: false,
+      lastReviewDate: null
+    },
     projects: [],
     tasks: [],
     ideas: [],
     habits: [],
     goals: [],
     quickLinks: [],
+    timeLog: [],
     scratchpad: ""
   };
 }
 
 function migrate(data) {
-  // Future schema upgrades go here:
-  // switch (data.schemaVersion) { case 1: /* upgrade to 2 */ }
-  return Object.assign(defaultState(), data);
+  data = data || {};
+  const def = defaultState();
+  const incoming = data.settings || {};
+  // Build a fresh object so default values survive — assigning into `def` itself
+  // would overwrite its nested `settings` before we can re-merge the defaults back in.
+  const out = Object.assign({}, def, data);
+  out.settings = Object.assign({}, def.settings, incoming);
+  out.settings.focus = Object.assign({}, def.settings.focus, incoming.focus || {});
+  out.settings.pomodoro = Object.assign({}, def.settings.pomodoro, incoming.pomodoro || {});
+  data = out;
+
+  // Idempotent per-item normalization (also upgrades schema 1 -> 2).
+  if (!Array.isArray(data.tasks)) data.tasks = [];
+  data.tasks.forEach(t => {
+    if (t.stage == null) t.stage = t.done ? "done" : "todo";
+    if (!Array.isArray(t.subtasks)) t.subtasks = [];
+    if (typeof t.secondsLogged !== "number") t.secondsLogged = 0;
+  });
+  if (!Array.isArray(data.projects)) data.projects = [];
+  data.projects.forEach(p => {
+    if (p.view == null) p.view = "list";
+    if (!Array.isArray(p.links)) p.links = [];
+    if (typeof p.notes !== "string") p.notes = "";
+  });
+  if (!Array.isArray(data.timeLog)) data.timeLog = [];
+  data.schemaVersion = 2;
+  return data;
 }
 
 function load() {
@@ -507,9 +748,19 @@ function getProject(id) { return state.projects.find(p => p.id === id); }
 function visibleProjects() { return state.projects.filter(p => p.status !== "archived"); }
 function archivedProjects() { return state.projects.filter(p => p.status === "archived"); }
 
-function openTasks() {
+function archivedTaskIds() {
   const archivedIds = new Set(archivedProjects().map(p => p.id));
-  return state.tasks.filter(t => !t.done && !archivedIds.has(t.projectId));
+  return (t) => archivedIds.has(t.projectId);
+}
+
+function openTasks() {
+  const isArchived = archivedTaskIds();
+  return state.tasks.filter(t => !t.done && !isArchived(t));
+}
+
+function activeTasks() {
+  const isArchived = archivedTaskIds();
+  return state.tasks.filter(t => !isArchived(t));
 }
 
 function sortTasks(tasks) {
@@ -535,6 +786,26 @@ function habitStreak(habit) {
   return streak;
 }
 
+function bestStreak(habit) {
+  const days = [...new Set(habit.completions)].sort();
+  let best = 0, cur = 0, prev = null;
+  for (const ds of days) {
+    if (prev && toLocalISO(addDays(parseISO(prev), 1)) === ds) cur++; else cur = 1;
+    if (cur > best) best = cur;
+    prev = ds;
+  }
+  return best;
+}
+
+function habitRate(habit, days) {
+  const set = new Set(habit.completions);
+  let hit = 0;
+  for (let i = 0; i < days; i++) {
+    if (set.has(toLocalISO(addDays(new Date(), -i)))) hit++;
+  }
+  return Math.round(hit / days * 100);
+}
+
 function goalProgress(goal) {
   if (goal.mode === "milestones") {
     const total = goal.milestones.length;
@@ -544,28 +815,93 @@ function goalProgress(goal) {
   return goal.progress || 0;
 }
 
+function focusSeconds(sinceISO) {
+  return state.timeLog
+    .filter(l => !sinceISO || l.date >= sinceISO)
+    .reduce((s, l) => s + (l.seconds || 0), 0);
+}
+
+function reviewDue() {
+  const last = state.settings.lastReviewDate;
+  if (!last) return true;
+  return parseISO(todayStr()) - parseISO(last) >= 7 * 86400000;
+}
+
 /* ============================================================
-   4. RENDER
+   4. THEME
+   ============================================================ */
+function applyTheme() {
+  const s = state.settings;
+  document.documentElement.dataset.theme = s.theme === "light" ? "light" : "dark";
+  document.documentElement.style.setProperty("--accent", s.accent);
+  document.documentElement.style.setProperty("--accent-soft", hexToRgba(s.accent, 0.15));
+  const meta = $('meta[name="theme-color"]');
+  if (meta) meta.content = s.theme === "light" ? "#f4f5f8" : "#0f1115";
+}
+
+/* ============================================================
+   5. UNDO TOASTS
+   ============================================================ */
+let pendingUndo = null;
+let toastTimer = null;
+
+function showToast(message, undoFn) {
+  let wrap = $("#toast-wrap");
+  if (!wrap) { wrap = document.createElement("div"); wrap.id = "toast-wrap"; document.body.appendChild(wrap); }
+  wrap.innerHTML = `
+    <div class="toast">
+      <span>${escapeHtml(message)}</span>
+      ${undoFn ? `<button class="primary" data-action="toast-undo">Undo</button>` : ""}
+      <button class="icon-btn" data-action="toast-dismiss" title="Dismiss">✕</button>
+    </div>`;
+  pendingUndo = undoFn || null;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { wrap.innerHTML = ""; pendingUndo = null; }, 6000);
+}
+
+function dismissToast() {
+  clearTimeout(toastTimer);
+  const w = $("#toast-wrap");
+  if (w) w.innerHTML = "";
+  pendingUndo = null;
+}
+
+// mutate() performs the change and returns a function that reverts it (or null for no undo).
+function withUndo(message, mutate) {
+  const undo = mutate();
+  save();
+  renderAll();
+  showToast(message, undo ? () => { undo(); save(); renderAll(); } : null);
+}
+
+/* ============================================================
+   6. RENDER ROUTER
    ============================================================ */
 function renderAll() {
   renderTabs();
-  const tab = state.settings.lastActiveTab;
-  const projectExists = tab !== "home" && visibleProjects().some(p => p.id === tab);
-  if (tab === "home" || !projectExists) {
+  let tab = state.settings.lastActiveTab;
+  const fixed = ["home", "today", "calendar", "stats"];
+  const projectExists = visibleProjects().some(p => p.id === tab);
+  if (!fixed.includes(tab) && !projectExists) {
+    tab = "home";
     state.settings.lastActiveTab = "home";
-    $("#view-home").hidden = false;
-    $("#view-project").hidden = true;
-    renderHome();
-  } else {
-    $("#view-home").hidden = true;
-    $("#view-project").hidden = false;
-    renderProject(tab);
   }
+  if (tab === "home") renderHome();
+  else if (tab === "today") renderToday();
+  else if (tab === "calendar") renderCalendar();
+  else if (tab === "stats") renderStats();
+  else renderProject(tab);
+
+  const rv = $("#btn-review");
+  if (rv) rv.innerHTML = "🪄 Review" + (reviewDue() ? `<span class="dot"></span>` : "");
 }
 
 function renderTabs() {
   const active = state.settings.lastActiveTab;
-  let html = `<button data-action="switch-tab" data-id="home" class="${active === "home" ? "active" : ""}">🏠 Home</button>`;
+  const fixedTabs = [["home", "🏠 Home"], ["today", "☀️ Today"], ["calendar", "📅 Calendar"], ["stats", "📊 Stats"]];
+  let html = fixedTabs.map(([id, label]) =>
+    `<button data-action="switch-tab" data-id="${id}" class="${active === id ? "active" : ""}">${label}</button>`
+  ).join("");
   for (const p of visibleProjects()) {
     html += `<button data-action="switch-tab" data-id="${p.id}" class="${active === p.id ? "active" : ""}">${escapeHtml(p.name)}</button>`;
   }
@@ -575,7 +911,7 @@ function renderTabs() {
 
 /* ---------- Home ---------- */
 function renderHome() {
-  $("#view-home").innerHTML = `
+  $("#view").innerHTML = `
     <div class="grid">
       <div class="card span-2">
         <div class="stats-row">
@@ -637,6 +973,7 @@ function renderHabits() {
           <span>${escapeHtml(h.name)}</span>
           <span class="streak">${streak > 0 ? "🔥 " + streak : ""}</span>
         </button>
+        <button class="icon-btn" data-action="habit-detail" data-id="${h.id}" title="History &amp; heatmap">▦</button>
         <button class="icon-btn danger-btn" data-action="del-habit" data-id="${h.id}" title="Delete habit">✕</button>
       </div>`;
   }).join("");
@@ -645,13 +982,15 @@ function renderHabits() {
 function renderTaskRollup() {
   const tasks = sortTasks(openTasks()).slice(0, 10);
   if (!tasks.length) return `<p class="empty">No open tasks. Add some from a project tab.</p>`;
-  return `<ul class="plain">` + tasks.map(t => taskRowHtml(t, true)).join("") + `</ul>`;
+  return `<ul class="plain">` + tasks.map(t => taskRowHtml(t, { showProject: true })).join("") + `</ul>`;
 }
 
-function taskRowHtml(t, showProject) {
+function taskRowHtml(t, opts) {
+  opts = opts || {};
   const proj = getProject(t.projectId);
   const overdue = t.dueDate && !t.done && t.dueDate < todayStr();
   const prioLabel = { 1: "HIGH", 2: "MED", 3: "LOW" }[t.priority] || "MED";
+  const subDone = t.subtasks.filter(s => s.done).length;
   return `
     <li>
       <button class="checkbox ${t.done ? "checked" : ""}" data-action="toggle-task" data-id="${t.id}" title="Toggle done">${t.done ? "✓" : ""}</button>
@@ -660,12 +999,25 @@ function taskRowHtml(t, showProject) {
         <div class="meta">
           <span class="prio p${t.priority}">${prioLabel}</span>
           ${t.dueDate ? `<span class="${overdue ? "overdue" : ""}"> 📅 ${fmtDate(t.dueDate)}${overdue ? " (overdue)" : ""}</span>` : ""}
-          ${showProject && proj ? ` <span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}
+          ${t.subtasks.length ? `<span class="subcount">☑ ${subDone}/${t.subtasks.length}</span>` : ""}
+          ${t.secondsLogged ? `<span class="timecount">⏱ ${fmtDuration(t.secondsLogged)}</span>` : ""}
+          ${opts.showProject && proj ? ` <span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}
         </div>
+        ${opts.showSubtasks ? renderSubtasks(t) : ""}
       </div>
+      ${opts.showFocus ? `<button class="icon-btn" data-action="start-focus" data-id="${t.id}" title="Start focus session">⏱</button>` : ""}
       <button class="icon-btn" data-action="edit-task" data-id="${t.id}" title="Edit">✎</button>
       <button class="icon-btn danger-btn" data-action="del-task" data-id="${t.id}" title="Delete">✕</button>
     </li>`;
+}
+
+function renderSubtasks(t) {
+  if (!t.subtasks.length) return "";
+  return `<ul class="subtasks">` + t.subtasks.map(s => `
+    <li>
+      <button class="checkbox sm ${s.done ? "checked" : ""}" data-action="toggle-subtask" data-id="${t.id}" data-sid="${s.id}">${s.done ? "✓" : ""}</button>
+      <span class="${s.done ? "task-title done" : ""}">${escapeHtml(s.title)}</span>
+    </li>`).join("") + `</ul>`;
 }
 
 function renderGoals() {
@@ -732,13 +1084,240 @@ function renderArchivedSection() {
     </div>`;
 }
 
+/* ---------- Today / Focus ---------- */
+function renderToday() {
+  // Roll focus list over to a new day.
+  if (state.settings.focus.date !== todayStr()) {
+    state.settings.focus = { date: todayStr(), taskIds: [] };
+    save();
+  }
+  const focus = state.settings.focus;
+  const byId = new Map(state.tasks.map(t => [t.id, t]));
+  focus.taskIds = focus.taskIds.filter(id => byId.has(id) && !byId.get(id).done);
+
+  const slots = [];
+  for (let i = 0; i < 3; i++) {
+    const t = focus.taskIds[i] ? byId.get(focus.taskIds[i]) : null;
+    slots.push(t ? `
+      <div class="focus-slot">
+        <button class="checkbox ${t.done ? "checked" : ""}" data-action="toggle-task" data-id="${t.id}" title="Mark done">${t.done ? "✓" : ""}</button>
+        <div class="grow"><div class="task-title">${escapeHtml(t.title)}</div>
+          <div class="meta">${getProject(t.projectId) ? `<span class="proj-label">${escapeHtml(getProject(t.projectId).name)}</span>` : ""}
+          ${t.dueDate ? ` 📅 ${fmtDate(t.dueDate)}` : ""}</div></div>
+        <button class="icon-btn" data-action="start-focus" data-id="${t.id}" title="Start focus session">⏱</button>
+        <button class="icon-btn" data-action="focus-remove" data-id="${t.id}" title="Remove from today">✕</button>
+      </div>`
+      : `<div class="focus-slot empty">Priority slot ${i + 1} — pick a task below</div>`);
+  }
+
+  const today = todayStr();
+  const dueToday = sortTasks(openTasks().filter(t => t.dueDate === today));
+  const overdue = sortTasks(openTasks().filter(t => t.dueDate && t.dueDate < today));
+  const candidates = sortTasks(openTasks()).slice(0, 30);
+
+  const candidateRow = (t) => {
+    const inFocus = focus.taskIds.includes(t.id);
+    const proj = getProject(t.projectId);
+    return `
+      <li>
+        <button class="star-btn ${inFocus ? "" : "off"}" data-action="${inFocus ? "focus-remove" : "focus-add"}" data-id="${t.id}" title="${inFocus ? "Remove from today" : "Add to today"}">${inFocus ? "★" : "☆"}</button>
+        <div class="grow"><div class="task-title">${escapeHtml(t.title)}</div>
+          <div class="meta"><span class="prio p${t.priority}">${{ 1: "HIGH", 2: "MED", 3: "LOW" }[t.priority]}</span>
+          ${t.dueDate ? ` 📅 ${fmtDate(t.dueDate)}` : ""} ${proj ? `<span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}</div></div>
+        <button class="icon-btn" data-action="start-focus" data-id="${t.id}" title="Focus">⏱</button>
+      </li>`;
+  };
+
+  const fmtToday = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+  $("#view").innerHTML = `
+    <div class="grid">
+      <div class="card span-2">
+        <h2>${escapeHtml(fmtToday)}
+          <span class="h2-actions"><button class="ghost" data-action="start-focus" title="Start a ${state.settings.pomodoro.workMin}-minute focus session">⏱ Start focus</button></span>
+        </h2>
+        <div class="section-title">My top 3 for today</div>
+        <div class="focus-slots">${slots.join("")}</div>
+      </div>
+
+      <div class="card">
+        <h2>Due today</h2>
+        ${dueToday.length ? `<ul class="plain">${dueToday.map(t => taskRowHtml(t, { showProject: true, showFocus: true })).join("")}</ul>` : `<p class="empty">Nothing due today. 🎉</p>`}
+      </div>
+
+      <div class="card">
+        <h2>Overdue</h2>
+        ${overdue.length ? `<ul class="plain">${overdue.map(t => taskRowHtml(t, { showProject: true, showFocus: true })).join("")}</ul>` : `<p class="empty">No overdue tasks.</p>`}
+      </div>
+
+      <div class="card">
+        <h2>Today's habits <button class="icon-btn" data-action="add-habit" title="New habit">＋</button></h2>
+        ${renderHabits()}
+      </div>
+
+      <div class="card">
+        <h2>Focused today</h2>
+        <div class="stats-row">
+          <div class="stat"><div class="num">${fmtDuration(focusSeconds(today))}</div><div class="label">Focus time</div></div>
+          <div class="stat"><div class="num">${state.tasks.filter(t => t.done && t.completedAt && t.completedAt.slice(0, 10) === today).length}</div><div class="label">Tasks done</div></div>
+        </div>
+      </div>
+
+      <div class="card span-2">
+        <h2>Pick your priorities</h2>
+        ${candidates.length ? `<ul class="plain">${candidates.map(candidateRow).join("")}</ul>` : `<p class="empty">No open tasks. Add some from a project tab.</p>`}
+      </div>
+    </div>`;
+}
+
+/* ---------- Calendar ---------- */
+let calY, calM;
+(function initCal() { const n = new Date(); calY = n.getFullYear(); calM = n.getMonth(); })();
+
+function renderCalendar() {
+  const isArchived = archivedTaskIds();
+  const byDay = new Map();
+  for (const t of state.tasks) {
+    if (!t.dueDate || isArchived(t)) continue;
+    if (!byDay.has(t.dueDate)) byDay.set(t.dueDate, []);
+    byDay.get(t.dueDate).push(t);
+  }
+
+  const first = new Date(calY, calM, 1);
+  const startDow = (first.getDay() + 6) % 7; // Monday start
+  const gridStart = addDays(first, -startDow);
+  const monthLabel = first.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const today = todayStr();
+  const dows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  let cells = "";
+  for (let i = 0; i < 42; i++) {
+    const d = addDays(gridStart, i);
+    const iso = toLocalISO(d);
+    const inMonth = d.getMonth() === calM;
+    const dayTasks = sortTasks(byDay.get(iso) || []);
+    const shown = dayTasks.slice(0, 3);
+    const chips = shown.map(t => {
+      const overdue = !t.done && iso < today;
+      return `<div class="cal-chip p${t.priority} ${t.done ? "done" : ""} ${overdue ? "overdue" : ""}" data-action="edit-task" data-id="${t.id}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`;
+    }).join("");
+    const more = dayTasks.length > 3 ? `<div class="cal-more">+${dayTasks.length - 3} more</div>` : "";
+    cells += `
+      <div class="cal-cell ${inMonth ? "" : "dim"} ${iso === today ? "today" : ""}">
+        <div class="cal-daynum">${d.getDate()}</div>
+        ${chips}${more}
+      </div>`;
+  }
+
+  $("#view").innerHTML = `
+    <div class="card span-2">
+      <div class="cal-head">
+        <button class="icon-btn" data-action="cal-prev" title="Previous month">◀</button>
+        <span class="cal-title">${escapeHtml(monthLabel)}</span>
+        <button class="ghost" data-action="cal-today">Today</button>
+        <button class="icon-btn" data-action="cal-next" title="Next month">▶</button>
+      </div>
+      <div class="cal-grid">${dows.map(d => `<div class="cal-dow">${d}</div>`).join("")}</div>
+      <div class="cal-grid" style="margin-top:6px">${cells}</div>
+    </div>`;
+}
+
+/* ---------- Stats ---------- */
+function renderStats() {
+  const weeks = 8;
+  const buckets = [];
+  for (let i = weeks - 1; i >= 0; i--) buckets.push({ week: weekStartISO(addDays(new Date(), -7 * i)), count: 0 });
+  const idx = new Map(buckets.map((b, i) => [b.week, i]));
+  for (const t of state.tasks) {
+    if (t.done && t.completedAt) {
+      const ws = weekStartISO(new Date(t.completedAt));
+      if (idx.has(ws)) buckets[idx.get(ws)].count++;
+    }
+  }
+  const maxWeek = Math.max(1, ...buckets.map(b => b.count));
+  const totalDone = state.tasks.filter(t => t.done).length;
+  const open = openTasks().length;
+  const overdue = openTasks().filter(t => t.dueDate && t.dueDate < todayStr()).length;
+  const velocity = (buckets.reduce((s, b) => s + b.count, 0) / weeks).toFixed(1);
+
+  const weekChart = buckets.map(b => {
+    const label = fmtDate(b.week);
+    return `<div class="chart-row"><span class="lbl">${label}</span><span class="track"><span class="fill" style="width:${Math.round(b.count / maxWeek * 100)}%"></span></span><span class="val">${b.count}</span></div>`;
+  }).join("");
+
+  // Busiest projects by open task count
+  const projCounts = visibleProjects().map(p => ({ name: p.name, count: state.tasks.filter(t => t.projectId === p.id && !t.done).length }))
+    .filter(x => x.count > 0).sort((a, b) => b.count - a.count).slice(0, 6);
+  const maxProj = Math.max(1, ...projCounts.map(p => p.count));
+  const projChart = projCounts.length ? projCounts.map(p =>
+    `<div class="chart-row"><span class="lbl">${escapeHtml(p.name)}</span><span class="track"><span class="fill" style="width:${Math.round(p.count / maxProj * 100)}%"></span></span><span class="val">${p.count}</span></div>`
+  ).join("") : `<p class="empty">No open tasks across projects.</p>`;
+
+  // Focus time by project (all-time)
+  const focusByProj = new Map();
+  for (const l of state.timeLog) {
+    const key = l.projectId || "__none";
+    focusByProj.set(key, (focusByProj.get(key) || 0) + (l.seconds || 0));
+  }
+  const focusRows = [...focusByProj.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxFocus = Math.max(1, ...focusRows.map(r => r[1]));
+  const focusChart = focusRows.length ? focusRows.map(([id, sec]) => {
+    const name = id === "__none" ? "Unassigned" : (getProject(id)?.name || "Deleted project");
+    return `<div class="chart-row"><span class="lbl">${escapeHtml(name)}</span><span class="track"><span class="fill" style="width:${Math.round(sec / maxFocus * 100)}%"></span></span><span class="val">${fmtDuration(sec)}</span></div>`;
+  }).join("") : `<p class="empty">No focus sessions logged yet. Start one with the ⏱ button.</p>`;
+
+  const weekStart = weekStartISO(new Date());
+  const habitRows = state.habits.length ? state.habits.map(h =>
+    `<div class="chart-row"><span class="lbl">${escapeHtml(h.name)}</span><span class="track"><span class="fill" style="width:${habitRate(h, 30)}%"></span></span><span class="val">${habitRate(h, 30)}%</span></div>`
+  ).join("") : `<p class="empty">No habits yet.</p>`;
+
+  $("#view").innerHTML = `
+    <div class="grid">
+      <div class="card span-2">
+        <div class="stats-row">
+          <div class="stat"><div class="num">${totalDone}</div><div class="label">Tasks completed</div></div>
+          <div class="stat"><div class="num">${open}</div><div class="label">Open</div></div>
+          <div class="stat"><div class="num">${overdue}</div><div class="label">Overdue</div></div>
+          <div class="stat"><div class="num">${velocity}</div><div class="label">Tasks / week</div></div>
+          <div class="stat"><div class="num">${fmtDuration(focusSeconds(weekStart))}</div><div class="label">Focus this week</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Tasks completed per week</h2>
+        ${weekChart}
+      </div>
+      <div class="card">
+        <h2>Busiest projects (open tasks)</h2>
+        ${projChart}
+      </div>
+      <div class="card">
+        <h2>Focus time by project</h2>
+        ${focusChart}
+      </div>
+      <div class="card">
+        <h2>Habit consistency (last 30 days)</h2>
+        ${habitRows}
+      </div>
+    </div>`;
+}
+
 /* ---------- Project view ---------- */
+function stageTasks(projectId, stage) {
+  return sortTasks(state.tasks.filter(t => t.projectId === projectId && t.stage === stage));
+}
+
 function renderProject(id) {
   const p = getProject(id);
-  if (!p) { state.settings.lastActiveTab = "home"; renderAll(); return; }
-  const tasks = sortTasks(state.tasks.filter(t => t.projectId === id));
+  if (!p) { state.settings.lastActiveTab = "home"; renderHome(); return; }
   const statusLabel = { "active": "Active", "on-hold": "On hold", "done": "Done" }[p.status] || p.status;
-  $("#view-project").innerHTML = `
+  const allTasks = sortTasks(state.tasks.filter(t => t.projectId === id));
+  const view = p.view || "list";
+
+  const tasksBody = view === "board" ? renderBoard(p.id) : (
+    allTasks.length ? `<ul class="plain">${allTasks.map(t => taskRowHtml(t, { showSubtasks: true, showFocus: true })).join("")}</ul>` : `<p class="empty">No tasks yet.</p>`
+  );
+
+  $("#view").innerHTML = `
     <div class="project-head">
       <h2 class="project-name">${escapeHtml(p.name)} <span class="status-badge status-${escapeHtml(p.status)}">${escapeHtml(statusLabel)}</span></h2>
       <button class="ghost" data-action="edit-project" data-id="${p.id}">Edit</button>
@@ -748,8 +1327,16 @@ function renderProject(id) {
     ${p.description ? `<p class="project-desc">${escapeHtml(p.description)}</p>` : ""}
     <div class="grid">
       <div class="card span-2">
-        <h2>Tasks <button class="icon-btn" data-action="add-task" data-id="${p.id}" title="New task">＋</button></h2>
-        ${tasks.length ? `<ul class="plain">${tasks.map(t => taskRowHtml(t, false)).join("")}</ul>` : `<p class="empty">No tasks yet.</p>`}
+        <h2>Tasks
+          <span class="h2-actions">
+            <span class="seg">
+              <button class="${view === "list" ? "active" : ""}" data-action="set-project-view" data-id="${p.id}" data-view="list">List</button>
+              <button class="${view === "board" ? "active" : ""}" data-action="set-project-view" data-id="${p.id}" data-view="board">Board</button>
+            </span>
+            <button class="icon-btn" data-action="add-task" data-id="${p.id}" title="New task">＋</button>
+          </span>
+        </h2>
+        ${tasksBody}
       </div>
       <div class="card">
         <h2>Notes</h2>
@@ -762,8 +1349,241 @@ function renderProject(id) {
     </div>`;
 }
 
+function renderBoard(projectId) {
+  const cols = [["todo", "To-do"], ["doing", "Doing"], ["done", "Done"]];
+  return `<div class="board">` + cols.map(([stage, label]) => {
+    const tasks = stageTasks(projectId, stage);
+    return `
+      <div class="board-col" data-stage="${stage}">
+        <h3>${label}<span>${tasks.length}</span></h3>
+        ${tasks.map(kanbanCardHtml).join("")}
+      </div>`;
+  }).join("") + `</div>`;
+}
+
+function kanbanCardHtml(t) {
+  const overdue = t.dueDate && !t.done && t.dueDate < todayStr();
+  const prioLabel = { 1: "HIGH", 2: "MED", 3: "LOW" }[t.priority] || "MED";
+  const subDone = t.subtasks.filter(s => s.done).length;
+  return `
+    <div class="kanban-card" draggable="true" data-id="${t.id}">
+      <div class="kc-title ${t.done ? "done" : ""}">${escapeHtml(t.title)}</div>
+      <div class="meta">
+        <span class="prio p${t.priority}">${prioLabel}</span>
+        ${t.dueDate ? `<span class="${overdue ? "overdue" : ""}"> 📅 ${fmtDate(t.dueDate)}</span>` : ""}
+        ${t.subtasks.length ? `<span class="subcount">☑ ${subDone}/${t.subtasks.length}</span>` : ""}
+        ${t.secondsLogged ? `<span class="timecount">⏱ ${fmtDuration(t.secondsLogged)}</span>` : ""}
+      </div>
+      <div class="kc-actions">
+        <button class="icon-btn" data-action="stage-prev" data-id="${t.id}" title="Move left">◀</button>
+        <button class="icon-btn" data-action="start-focus" data-id="${t.id}" title="Focus">⏱</button>
+        <button class="icon-btn" data-action="edit-task" data-id="${t.id}" title="Edit">✎</button>
+        <button class="icon-btn danger-btn" data-action="del-task" data-id="${t.id}" title="Delete">✕</button>
+        <button class="icon-btn" data-action="stage-next" data-id="${t.id}" title="Move right">▶</button>
+      </div>
+    </div>`;
+}
+
+/* ---------- Habit detail + heatmap ---------- */
+let detailHabitId = null;
+
+function openHabitDetail(id) {
+  detailHabitId = id;
+  renderHabitDetail();
+  $("#dlg-habit-detail").showModal();
+}
+
+function renderHabitDetail() {
+  const h = state.habits.find(x => x.id === detailHabitId);
+  if (!h) return;
+  const set = new Set(h.completions);
+  const today = todayStr();
+
+  // 53 weeks ending this week, Monday-aligned columns.
+  const end = parseISO(weekStartISO(new Date()));
+  const start = addDays(end, -7 * 52);
+  let cells = "";
+  for (let w = 0; w <= 52; w++) {
+    for (let day = 0; day < 7; day++) {
+      const d = addDays(start, w * 7 + day);
+      const iso = toLocalISO(d);
+      const future = iso > today;
+      const on = set.has(iso);
+      cells += `<button class="heat-cell ${on ? "l4" : ""} ${iso === today ? "today" : ""} ${future ? "future" : ""}"
+        ${future ? "disabled" : `data-action="heat-toggle" data-id="${h.id}" data-date="${iso}"`}
+        title="${iso}${on ? " ✓" : ""}"></button>`;
+    }
+  }
+
+  $("#habit-detail-body").innerHTML = `
+    <h3>${escapeHtml(h.name)}</h3>
+    <div class="heat-stats">
+      <div class="stat"><div class="num">${habitStreak(h)}</div><div class="label">Current streak</div></div>
+      <div class="stat"><div class="num">${bestStreak(h)}</div><div class="label">Best streak</div></div>
+      <div class="stat"><div class="num">${h.completions.length}</div><div class="label">Total days</div></div>
+      <div class="stat"><div class="num">${habitRate(h, 30)}%</div><div class="label">Last 30 days</div></div>
+    </div>
+    <div class="heat-scroll"><div class="heat">${cells}</div></div>
+    <div class="heat-legend">Tap any past day to fill in or clear its history.</div>`;
+}
+
 /* ============================================================
-   5. MUTATIONS / ACTIONS
+   7. POMODORO / FOCUS TIMER
+   ============================================================ */
+let timerInterval = null;
+
+function ensureTimerLoop() {
+  if (!timerInterval) timerInterval = setInterval(tickTimer, 1000);
+}
+
+function logFocus(taskId, seconds) {
+  seconds = Math.round(seconds);
+  if (seconds < 1) return;
+  let projectId = null;
+  if (taskId) {
+    const t = state.tasks.find(x => x.id === taskId);
+    if (t) { t.secondsLogged = (t.secondsLogged || 0) + seconds; projectId = t.projectId; }
+  }
+  state.timeLog.push({ id: uid("tl"), taskId: taskId || null, projectId, date: todayStr(), seconds });
+}
+
+function beep() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = "sine"; o.frequency.value = 660;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+    o.start(); o.stop(ctx.currentTime + 0.45);
+  } catch {}
+}
+
+function notify(title, body) {
+  beep();
+  if (state.settings.notify && "Notification" in window && Notification.permission === "granted") {
+    try { new Notification(title, { body }); } catch {}
+  }
+}
+
+function resetWidgetSig() { const w = $("#timer-widget"); if (w) w.dataset.sig = ""; }
+
+function startFocus(taskId) {
+  const workMin = state.settings.pomodoro.workMin || 25;
+  state.settings.timer = {
+    taskId: taskId || null, phase: "work", paused: false,
+    endsAt: Date.now() + workMin * 60000, remainingMs: workMin * 60000
+  };
+  save();
+  resetWidgetSig();
+  ensureTimerLoop();
+  tickTimer();
+}
+
+function completePhase() {
+  const t = state.settings.timer;
+  if (!t) return;
+  if (t.phase === "work") {
+    logFocus(t.taskId, (state.settings.pomodoro.workMin || 25) * 60);
+    const breakMin = state.settings.pomodoro.breakMin || 5;
+    state.settings.timer = {
+      taskId: t.taskId, phase: "break", paused: false,
+      endsAt: Date.now() + breakMin * 60000, remainingMs: breakMin * 60000
+    };
+    save();
+    notify("Focus complete 🍅", "Time for a " + breakMin + "-minute break.");
+  } else {
+    state.settings.timer = null;
+    save();
+    notify("Break over ☕", "Ready for another round?");
+  }
+  resetWidgetSig();
+  tickTimer();
+  renderAll();
+}
+
+function tickTimer() {
+  const t = state.settings.timer;
+  if (!t) {
+    const w = $("#timer-widget");
+    if (w) w.remove();
+    if (document.title !== BASE_TITLE) document.title = BASE_TITLE;
+    return;
+  }
+  let remaining = t.paused ? t.remainingMs : (t.endsAt - Date.now());
+  if (!t.paused && remaining <= 0) { completePhase(); return; }
+  renderTimerWidget(remaining);
+  document.title = fmtClock(remaining) + " • " + (t.phase === "work" ? "Focus" : "Break");
+}
+
+function renderTimerWidget(remaining) {
+  const t = state.settings.timer;
+  let w = $("#timer-widget");
+  if (!w) { w = document.createElement("div"); w.id = "timer-widget"; document.body.appendChild(w); }
+  const taskName = t.taskId ? (state.tasks.find(x => x.id === t.taskId)?.title || "") : "";
+  const sig = t.phase + "|" + t.paused + "|" + (t.taskId || "");
+  if (w.dataset.sig === sig && w.querySelector(".timer-time")) {
+    w.querySelector(".timer-time").textContent = fmtClock(remaining);
+    return;
+  }
+  w.dataset.sig = sig;
+  w.className = t.phase === "break" ? "break" : "";
+  w.innerHTML = `
+    <div class="timer-phase">${t.phase === "work" ? "🍅 Focus" : "☕ Break"}</div>
+    <div class="timer-time">${fmtClock(remaining)}</div>
+    ${taskName ? `<div class="timer-task">${escapeHtml(taskName)}</div>` : ""}
+    <div class="timer-controls">
+      ${t.paused
+        ? `<button class="primary" data-action="timer-resume">Resume</button>`
+        : `<button data-action="timer-pause">Pause</button>`}
+      <button data-action="timer-skip" title="Skip to next phase">Skip</button>
+      <button class="danger-btn" data-action="timer-stop">Stop</button>
+    </div>`;
+}
+
+function stopTimer(logIfWork) {
+  const t = state.settings.timer;
+  if (!t) return;
+  if (logIfWork && t.phase === "work") {
+    const total = (state.settings.pomodoro.workMin || 25) * 60000;
+    const remaining = t.paused ? t.remainingMs : Math.max(0, t.endsAt - Date.now());
+    logFocus(t.taskId, Math.max(0, (total - remaining) / 1000));
+  }
+  state.settings.timer = null;
+  save();
+  resetWidgetSig();
+  tickTimer();
+  renderAll();
+}
+
+/* ============================================================
+   8. STAGE / STATUS MUTATIONS
+   ============================================================ */
+function setStage(id, stage) {
+  if (!["todo", "doing", "done"].includes(stage)) return;
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  const wasDone = t.done;
+  t.stage = stage;
+  t.done = stage === "done";
+  if (t.done && !wasDone) t.completedAt = new Date().toISOString();
+  if (!t.done) t.completedAt = null;
+  save(); renderAll();
+}
+
+function shiftStage(id, dir) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  const order = ["todo", "doing", "done"];
+  const i = Math.max(0, order.indexOf(t.stage));
+  setStage(id, order[Math.min(order.length - 1, Math.max(0, i + dir))]);
+}
+
+/* ============================================================
+   9. ACTIONS
    ============================================================ */
 function openDialog(sel) { document.querySelector(sel).showModal(); }
 
@@ -796,6 +1616,12 @@ const actions = {
     $("#dlg-project-title").textContent = "Edit project";
     openDialog("#dlg-project");
   },
+  "set-project-view": (id, el) => {
+    const p = getProject(id);
+    if (!p) return;
+    p.view = el.dataset.view === "board" ? "board" : "list";
+    save(); renderAll();
+  },
   "archive-project": (id) => {
     const p = getProject(id);
     if (!p) return;
@@ -809,17 +1635,21 @@ const actions = {
     p.status = "active";
     save(); renderAll();
   },
-  "delete-project": (id) => {
-    const p = getProject(id);
-    if (!p) return;
-    const taskCount = state.tasks.filter(t => t.projectId === id).length;
-    if (!confirm(`Delete "${p.name}"${taskCount ? ` and its ${taskCount} task(s)` : ""}? This cannot be undone.`)) return;
-    state.projects = state.projects.filter(x => x.id !== id);
+  "delete-project": (id) => withUndo("Project deleted", () => {
+    const pIdx = state.projects.findIndex(p => p.id === id);
+    if (pIdx < 0) return null;
+    const [proj] = state.projects.splice(pIdx, 1);
+    const removedTasks = state.tasks.filter(t => t.projectId === id);
     state.tasks = state.tasks.filter(t => t.projectId !== id);
+    const goalLinks = state.goals.filter(g => g.projectId === id).map(g => g.id);
     state.goals.forEach(g => { if (g.projectId === id) g.projectId = null; });
     if (state.settings.lastActiveTab === id) state.settings.lastActiveTab = "home";
-    save(); renderAll();
-  },
+    return () => {
+      state.projects.splice(Math.min(pIdx, state.projects.length), 0, proj);
+      state.tasks.push(...removedTasks);
+      goalLinks.forEach(gid => { const g = state.goals.find(x => x.id === gid); if (g) g.projectId = id; });
+    };
+  }),
 
   /* --- tasks --- */
   "add-task": (projectId) => {
@@ -840,6 +1670,7 @@ const actions = {
     f.elements.title.value = t.title;
     f.elements.priority.value = String(t.priority);
     f.elements.dueDate.value = t.dueDate || "";
+    f.elements.subtasks.value = t.subtasks.map(s => s.title).join("\n");
     $("#dlg-task-title").textContent = "Edit task";
     openDialog("#dlg-task");
   },
@@ -848,12 +1679,25 @@ const actions = {
     if (!t) return;
     t.done = !t.done;
     t.completedAt = t.done ? new Date().toISOString() : null;
+    t.stage = t.done ? "done" : (t.stage === "done" ? "todo" : t.stage);
     save(); renderAll();
   },
-  "del-task": (id) => {
-    state.tasks = state.tasks.filter(t => t.id !== id);
+  "toggle-subtask": (id, el) => {
+    const t = state.tasks.find(x => x.id === id);
+    if (!t) return;
+    const s = t.subtasks.find(x => x.id === el.dataset.sid);
+    if (!s) return;
+    s.done = !s.done;
     save(); renderAll();
   },
+  "stage-prev": (id) => shiftStage(id, -1),
+  "stage-next": (id) => shiftStage(id, 1),
+  "del-task": (id) => withUndo("Task deleted", () => {
+    const idx = state.tasks.findIndex(t => t.id === id);
+    if (idx < 0) return null;
+    const [removed] = state.tasks.splice(idx, 1);
+    return () => state.tasks.splice(Math.min(idx, state.tasks.length), 0, removed);
+  }),
 
   /* --- ideas --- */
   "promote-idea": (id) => {
@@ -862,17 +1706,19 @@ const actions = {
     const name = idea.text.length > 60 ? idea.text.slice(0, 57) + "…" : idea.text;
     const project = {
       id: uid("p"), name, description: idea.text, status: "active",
-      notes: "", links: [], createdAt: new Date().toISOString()
+      notes: "", links: [], view: "list", createdAt: new Date().toISOString()
     };
     state.projects.push(project);
     state.ideas = state.ideas.filter(i => i.id !== id);
     state.settings.lastActiveTab = project.id;
     save(); renderAll();
   },
-  "del-idea": (id) => {
-    state.ideas = state.ideas.filter(i => i.id !== id);
-    save(); renderAll();
-  },
+  "del-idea": (id) => withUndo("Idea deleted", () => {
+    const idx = state.ideas.findIndex(i => i.id === id);
+    if (idx < 0) return null;
+    const [removed] = state.ideas.splice(idx, 1);
+    return () => state.ideas.splice(Math.min(idx, state.ideas.length), 0, removed);
+  }),
 
   /* --- habits --- */
   "add-habit": () => {
@@ -893,13 +1739,23 @@ const actions = {
     }
     save(); renderAll();
   },
-  "del-habit": (id) => {
+  "habit-detail": (id) => openHabitDetail(id),
+  "heat-toggle": (id, el) => {
     const h = state.habits.find(x => x.id === id);
     if (!h) return;
-    if (!confirm(`Delete habit "${h.name}" and its history?`)) return;
-    state.habits = state.habits.filter(x => x.id !== id);
-    save(); renderAll();
+    const date = el.dataset.date;
+    if (h.completions.includes(date)) h.completions = h.completions.filter(d => d !== date);
+    else { h.completions.push(date); h.completions.sort(); }
+    save();
+    renderHabitDetail();
+    renderAll();
   },
+  "del-habit": (id) => withUndo("Habit deleted", () => {
+    const idx = state.habits.findIndex(h => h.id === id);
+    if (idx < 0) return null;
+    const [removed] = state.habits.splice(idx, 1);
+    return () => state.habits.splice(Math.min(idx, state.habits.length), 0, removed);
+  }),
 
   /* --- goals --- */
   "add-goal": () => {
@@ -936,10 +1792,12 @@ const actions = {
     m.done = !m.done;
     save(); renderAll();
   },
-  "del-goal": (id) => {
-    state.goals = state.goals.filter(g => g.id !== id);
-    save(); renderAll();
-  },
+  "del-goal": (id) => withUndo("Goal deleted", () => {
+    const idx = state.goals.findIndex(g => g.id === id);
+    if (idx < 0) return null;
+    const [removed] = state.goals.splice(idx, 1);
+    return () => state.goals.splice(Math.min(idx, state.goals.length), 0, removed);
+  }),
 
   /* --- links --- */
   "add-link": (context) => {
@@ -948,15 +1806,121 @@ const actions = {
     f.elements.context.value = context;
     openDialog("#dlg-link");
   },
-  "del-link": (id, el) => {
+  "del-link": (id, el) => withUndo("Link deleted", () => {
     const context = el.dataset.context;
     if (context === "home") {
-      state.quickLinks = state.quickLinks.filter(l => l.id !== id);
-    } else {
-      const p = getProject(context);
-      if (p) p.links = p.links.filter(l => l.id !== id);
+      const idx = state.quickLinks.findIndex(l => l.id === id);
+      if (idx < 0) return null;
+      const [removed] = state.quickLinks.splice(idx, 1);
+      return () => state.quickLinks.splice(Math.min(idx, state.quickLinks.length), 0, removed);
     }
+    const p = getProject(context);
+    if (!p) return null;
+    const idx = p.links.findIndex(l => l.id === id);
+    if (idx < 0) return null;
+    const [removed] = p.links.splice(idx, 1);
+    return () => p.links.splice(Math.min(idx, p.links.length), 0, removed);
+  }),
+
+  /* --- today / focus --- */
+  "focus-add": (id) => {
+    const f = state.settings.focus;
+    if (f.date !== todayStr()) f.taskIds = [];
+    f.date = todayStr();
+    if (!f.taskIds.includes(id) && f.taskIds.length < 3) f.taskIds.push(id);
     save(); renderAll();
+  },
+  "focus-remove": (id) => {
+    state.settings.focus.taskIds = state.settings.focus.taskIds.filter(x => x !== id);
+    save(); renderAll();
+  },
+
+  /* --- calendar --- */
+  "cal-prev": () => { calM--; if (calM < 0) { calM = 11; calY--; } renderCalendar(); },
+  "cal-next": () => { calM++; if (calM > 11) { calM = 0; calY++; } renderCalendar(); },
+  "cal-today": () => { const n = new Date(); calY = n.getFullYear(); calM = n.getMonth(); renderCalendar(); },
+
+  /* --- timer --- */
+  "start-focus": (id) => startFocus(id || null),
+  "timer-pause": () => {
+    const t = state.settings.timer;
+    if (!t || t.paused) return;
+    t.remainingMs = Math.max(0, t.endsAt - Date.now());
+    t.paused = true;
+    save(); resetWidgetSig(); tickTimer();
+  },
+  "timer-resume": () => {
+    const t = state.settings.timer;
+    if (!t || !t.paused) return;
+    t.endsAt = Date.now() + t.remainingMs;
+    t.paused = false;
+    save(); resetWidgetSig(); tickTimer();
+  },
+  "timer-skip": () => {
+    const t = state.settings.timer;
+    if (!t) return;
+    if (t.phase === "work") completePhase();
+    else stopTimer(false);
+  },
+  "timer-stop": () => stopTimer(true),
+
+  /* --- review wizard --- */
+  "open-review": () => openReview(),
+  "review-next": () => { reviewStep++; renderReview(); },
+  "review-prev": () => { reviewStep--; renderReview(); },
+  "review-finish": () => {
+    state.settings.lastReviewDate = todayStr();
+    save();
+    $("#dlg-review").close();
+    renderAll();
+  },
+  "review-resched-today": (id) => {
+    const t = state.tasks.find(x => x.id === id);
+    if (t) { t.dueDate = todayStr(); save(); renderReview(); renderAll(); }
+  },
+  "review-clear-due": (id) => {
+    const t = state.tasks.find(x => x.id === id);
+    if (t) { t.dueDate = null; save(); renderReview(); renderAll(); }
+  },
+
+  /* --- settings --- */
+  "open-settings": () => { renderSettings(); openDialog("#dlg-settings"); },
+  "set-theme": (theme) => {
+    state.settings.theme = theme === "light" ? "light" : "dark";
+    applyTheme(); save(); renderSettings();
+  },
+  "set-accent": (id, el) => {
+    state.settings.accent = el.dataset.accent;
+    applyTheme(); save(); renderSettings();
+  },
+  "toggle-notify": () => {
+    if (!state.settings.notify) {
+      if (!("Notification" in window)) { alert("This browser doesn't support notifications."); return; }
+      Notification.requestPermission().then(perm => {
+        state.settings.notify = perm === "granted";
+        save(); renderSettings();
+        if (perm !== "granted") alert("Notifications were not granted by the browser.");
+      });
+    } else {
+      state.settings.notify = false;
+      save(); renderSettings();
+    }
+  },
+  "save-pomodoro": () => {
+    const work = Math.min(120, Math.max(1, Number($("#set-work").value) || 25));
+    const brk = Math.min(60, Math.max(1, Number($("#set-break").value) || 5));
+    state.settings.pomodoro = { workMin: work, breakMin: brk };
+    save(); renderSettings();
+    showToast("Timer lengths saved", null);
+  },
+  "install-app": () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt = null;
+      renderSettings();
+    } else {
+      alert("To install: use your browser menu → \"Install app\" / \"Add to Home Screen\". (Requires the page to be served over http/https, not opened as a file.)");
+    }
   },
 
   /* --- backup --- */
@@ -969,6 +1933,16 @@ const actions = {
     URL.revokeObjectURL(a.href);
   },
   "import": () => $("#import-file").click(),
+
+  /* --- toasts --- */
+  "toast-undo": () => {
+    if (!pendingUndo) return;
+    const f = pendingUndo;
+    pendingUndo = null;
+    dismissToast();
+    f();
+  },
+  "toast-dismiss": () => dismissToast(),
 
   "close-dialog": (id, el) => el.closest("dialog").close()
 };
@@ -987,8 +1961,123 @@ function syncGoalModeFields() {
   $("#goal-milestones-field").hidden = mode !== "milestones";
 }
 
+/* ---------- Review wizard ---------- */
+let reviewStep = 0;
+const REVIEW_STEPS = ["Summary", "Ideas inbox", "Overdue tasks", "Goals", "Plan ahead"];
+
+function openReview() {
+  reviewStep = 0;
+  renderReview();
+  $("#dlg-review").showModal();
+}
+
+function renderReview() {
+  const total = REVIEW_STEPS.length;
+  reviewStep = Math.max(0, Math.min(total - 1, reviewStep));
+  $("#review-progress").textContent = `Step ${reviewStep + 1} of ${total} — ${REVIEW_STEPS[reviewStep]}`;
+
+  const weekStart = weekStartISO(new Date());
+  let body = "";
+
+  if (reviewStep === 0) {
+    const doneThisWeek = state.tasks.filter(t => t.done && t.completedAt && t.completedAt.slice(0, 10) >= weekStart).length;
+    body = `
+      <h4>This week at a glance</h4>
+      <div class="stats-row">
+        <div class="stat"><div class="num">${doneThisWeek}</div><div class="label">Tasks completed</div></div>
+        <div class="stat"><div class="num">${fmtDuration(focusSeconds(weekStart))}</div><div class="label">Focus time</div></div>
+        <div class="stat"><div class="num">${state.ideas.length}</div><div class="label">Ideas to triage</div></div>
+        <div class="stat"><div class="num">${openTasks().filter(t => t.dueDate && t.dueDate < todayStr()).length}</div><div class="label">Overdue</div></div>
+      </div>
+      <p class="empty">Let's clear the inbox, sweep overdue work, and check your goals.</p>`;
+  } else if (reviewStep === 1) {
+    body = `<h4>Triage your ideas</h4>` + (state.ideas.length ? `
+      <ul class="plain">${state.ideas.slice().sort((a, b) => a.createdAt < b.createdAt ? 1 : -1).map(i => `
+        <li>
+          <span class="grow idea-text">${escapeHtml(i.text)}</span>
+          <button class="icon-btn" data-action="promote-idea" data-id="${i.id}">→ project</button>
+          <button class="icon-btn danger-btn" data-action="del-idea" data-id="${i.id}">✕</button>
+        </li>`).join("")}</ul>` : `<p class="empty">Inbox is clear. 🎉</p>`);
+  } else if (reviewStep === 2) {
+    const overdue = sortTasks(openTasks().filter(t => t.dueDate && t.dueDate < todayStr()));
+    body = `<h4>Sweep overdue tasks</h4>` + (overdue.length ? `
+      <ul class="plain">${overdue.map(t => `
+        <li>
+          <button class="checkbox" data-action="toggle-task" data-id="${t.id}" title="Mark done"></button>
+          <div class="grow"><div class="task-title">${escapeHtml(t.title)}</div>
+            <div class="meta overdue">📅 ${fmtDate(t.dueDate)} ${getProject(t.projectId) ? `<span class="proj-label">${escapeHtml(getProject(t.projectId).name)}</span>` : ""}</div></div>
+          <button class="icon-btn" data-action="review-resched-today" data-id="${t.id}" title="Move to today">Today</button>
+          <button class="icon-btn" data-action="review-clear-due" data-id="${t.id}" title="Clear due date">Clear</button>
+        </li>`).join("")}</ul>` : `<p class="empty">Nothing overdue. Nicely done.</p>`);
+  } else if (reviewStep === 3) {
+    body = `<h4>Check your goals</h4>` + (state.goals.length ? `
+      ${state.goals.map(g => { const pct = goalProgress(g); return `
+        <div class="goal"><div class="goal-head"><span class="grow">${escapeHtml(g.title)}</span><span class="meta">${pct}%</span></div>
+        <div class="bar"><div style="width:${pct}%"></div></div></div>`; }).join("")}` : `<p class="empty">No goals set. Consider adding one from Home.</p>`);
+  } else {
+    body = `
+      <h4>Plan ahead</h4>
+      <p>Head to the <strong>☀️ Today</strong> tab to pick your top 3 priorities, then start a focus session.</p>
+      <p class="empty">Finishing marks this week reviewed and clears the reminder dot.</p>`;
+  }
+  $("#review-body").innerHTML = body;
+
+  const isFirst = reviewStep === 0, isLast = reviewStep === total - 1;
+  $("#review-actions").innerHTML = `
+    <button class="ghost" data-action="close-dialog">Close</button>
+    ${isFirst ? "" : `<button class="ghost" data-action="review-prev">Back</button>`}
+    ${isLast ? `<button class="primary" data-action="review-finish">Finish review</button>` : `<button class="primary" data-action="review-next">Next</button>`}`;
+}
+
+/* ---------- Settings ---------- */
+function renderSettings() {
+  const s = state.settings;
+  const swatches = ACCENT_SWATCHES.map(c =>
+    `<button class="swatch ${s.accent.toLowerCase() === c ? "active" : ""}" style="background:${c}" data-action="set-accent" data-accent="${c}" title="${c}"></button>`
+  ).join("");
+  $("#settings-body").innerHTML = `
+    <div class="settings-row">
+      <div><strong>Theme</strong><div class="desc">Switch between dark and light.</div></div>
+      <span class="seg">
+        <button class="${s.theme === "dark" ? "active" : ""}" data-action="set-theme" data-id="dark">🌙 Dark</button>
+        <button class="${s.theme === "light" ? "active" : ""}" data-action="set-theme" data-id="light">☀️ Light</button>
+      </span>
+    </div>
+    <div class="settings-row">
+      <div><strong>Accent colour</strong><div class="desc">Used across charts, buttons and highlights.</div></div>
+      <div class="swatches">${swatches}</div>
+    </div>
+    <div class="settings-row">
+      <div><strong>Focus timer</strong><div class="desc">Pomodoro work / break lengths (minutes).</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" id="set-work" min="1" max="120" value="${s.pomodoro.workMin}" style="width:64px">
+        <span>/</span>
+        <input type="number" id="set-break" min="1" max="60" value="${s.pomodoro.breakMin}" style="width:64px">
+        <button data-action="save-pomodoro">Save</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div><strong>Notifications</strong><div class="desc">Alert when a focus or break ends.</div></div>
+      <button class="${s.notify ? "primary" : "ghost"}" data-action="toggle-notify">${s.notify ? "On" : "Off"}</button>
+    </div>
+    <div class="settings-row">
+      <div><strong>Install app</strong><div class="desc">Add to your home screen for offline use.</div></div>
+      <button class="ghost" data-action="install-app">${deferredInstallPrompt ? "Install" : "How to install"}</button>
+    </div>
+    <div class="settings-row">
+      <div><strong>Backup</strong><div class="desc">Your data lives only in this browser. Export regularly.</div></div>
+      <div style="display:flex;gap:6px">
+        <button data-action="export">Export</button>
+        <button class="ghost" data-action="import">Import</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="desc">Personal Dashboard — single-file, offline, no tracking. Schema v${state.schemaVersion}.</div>
+    </div>`;
+}
+
 /* ============================================================
-   6. EVENT WIRING
+   10. EVENT WIRING
    ============================================================ */
 document.body.addEventListener("click", (e) => {
   const el = e.target.closest("[data-action]");
@@ -1027,7 +2116,7 @@ document.body.addEventListener("submit", (e) => {
     } else {
       const p = {
         id: uid("p"), name, description: d.description.value.trim(),
-        status: d.status.value, notes: "", links: [], createdAt: new Date().toISOString()
+        status: d.status.value, notes: "", links: [], view: "list", createdAt: new Date().toISOString()
       };
       state.projects.push(p);
       state.settings.lastActiveTab = p.id;
@@ -1039,14 +2128,26 @@ document.body.addEventListener("submit", (e) => {
     const d = form.elements;
     const title = d.title.value.trim();
     if (!title) return;
+    const lines = d.subtasks.value.split("\n").map(s => s.trim()).filter(Boolean);
     if (d.id.value) {
       const t = state.tasks.find(x => x.id === d.id.value);
-      if (t) { t.title = title; t.priority = Number(d.priority.value); t.dueDate = d.dueDate.value || null; }
+      if (t) {
+        t.title = title;
+        t.priority = Number(d.priority.value);
+        t.dueDate = d.dueDate.value || null;
+        // Rebuild subtasks from the textarea, keeping done-status for titles that survive the edit.
+        const oldByTitle = new Map(t.subtasks.map(s => [s.title, s]));
+        t.subtasks = lines.map(line => {
+          const old = oldByTitle.get(line);
+          return { id: old?.id || uid("s"), title: line, done: old?.done || false };
+        });
+      }
     } else {
       state.tasks.push({
         id: uid("t"), projectId: d.projectId.value, title,
         priority: Number(d.priority.value), dueDate: d.dueDate.value || null,
-        done: false, completedAt: null, createdAt: new Date().toISOString()
+        stage: "todo", subtasks: lines.map(line => ({ id: uid("s"), title: line, done: false })),
+        secondsLogged: 0, done: false, completedAt: null, createdAt: new Date().toISOString()
       });
     }
     save(); renderAll();
@@ -1121,6 +2222,39 @@ document.body.addEventListener("input", (e) => {
 /* Goal dialog: switch between manual % and milestone fields. */
 $("#goal-mode").addEventListener("change", syncGoalModeFields);
 
+/* Kanban drag-and-drop */
+document.body.addEventListener("dragstart", (e) => {
+  const card = e.target.closest(".kanban-card");
+  if (!card) return;
+  e.dataTransfer.setData("text/plain", card.dataset.id);
+  e.dataTransfer.effectAllowed = "move";
+  card.classList.add("dragging");
+});
+document.body.addEventListener("dragend", (e) => {
+  const card = e.target.closest(".kanban-card");
+  if (card) card.classList.remove("dragging");
+  $$(".board-col.drop-target").forEach(c => c.classList.remove("drop-target"));
+});
+document.body.addEventListener("dragover", (e) => {
+  const col = e.target.closest(".board-col");
+  if (!col) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  col.classList.add("drop-target");
+});
+document.body.addEventListener("dragleave", (e) => {
+  const col = e.target.closest(".board-col");
+  if (col && !col.contains(e.relatedTarget)) col.classList.remove("drop-target");
+});
+document.body.addEventListener("drop", (e) => {
+  const col = e.target.closest(".board-col");
+  if (!col) return;
+  e.preventDefault();
+  const id = e.dataTransfer.getData("text/plain");
+  col.classList.remove("drop-target");
+  if (id) setStage(id, col.dataset.stage);
+});
+
 /* Import */
 $("#import-file").addEventListener("change", (e) => {
   const file = e.target.files[0];
@@ -1134,9 +2268,17 @@ $("#import-file").addEventListener("change", (e) => {
         typeof data.schemaVersion === "number" &&
         ["projects", "tasks", "ideas", "habits", "goals", "quickLinks"].every(k => Array.isArray(data[k]));
       if (!looksValid) throw new Error("not a dashboard backup");
-      if (!confirm("Importing replaces ALL current dashboard data. Continue?")) return;
+      const snapshot = JSON.parse(JSON.stringify(state));
       state = migrate(data);
-      save(); renderAll();
+      applyTheme();
+      save();
+      renderAll();
+      showToast("Backup imported — replaced all data", () => {
+        state = snapshot;
+        applyTheme();
+        save();
+        renderAll();
+      });
     } catch {
       alert("Import failed: that file isn't a valid dashboard backup.");
     }
@@ -1145,9 +2287,27 @@ $("#import-file").addEventListener("change", (e) => {
 });
 
 /* ============================================================
-   7. INIT
+   11. PWA: service worker + install prompt
    ============================================================ */
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if ($("#dlg-settings")?.open) renderSettings();
+});
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
+/* ============================================================
+   12. INIT
+   ============================================================ */
+applyTheme();
 renderAll();
+ensureTimerLoop();
+tickTimer();
 </script>
 </body>
 </html>
