@@ -412,6 +412,41 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
 .timer-task { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .timer-controls { display: flex; gap: 6px; margin-top: 8px; }
 .timer-controls button { min-height: 34px; padding: 4px 8px; flex: 1; font-size: 13px; }
+
+/* ============================================================
+   v3 FEATURES: intentions, calibration, OKR, insights, retro
+   ============================================================ */
+.cue { font-size: 12px; color: var(--accent); margin-top: 2px; overflow-wrap: anywhere; }
+.hcue { font-size: 12px; color: var(--muted); margin-left: 8px; }
+.meta .estcount { margin-left: 6px; color: var(--muted); }
+.goal-tag { font-size: 11px; background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 4px; min-height: 1em; }
+
+.big-stat { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 8px; }
+.big-stat .big-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+
+.insights { border: 1px solid var(--warn); }
+.insight { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; }
+.insight-ico { font-size: 18px; flex-shrink: 0; }
+
+.overload-banner { background: rgba(255, 182, 72, 0.12); border: 1px solid var(--warn); }
+
+.goal-child { margin-left: 18px; border-left: 2px solid var(--surface-2); padding-left: 10px; }
+.horizon-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); border: 1px solid var(--surface-2); border-radius: 4px; padding: 0 5px; margin-left: 4px; }
+.conf { font-size: 12px; margin-right: 6px; }
+.conf-hi { color: var(--ok); }
+.conf-mid { color: var(--warn); }
+.conf-lo { color: var(--danger); }
+.conf-buttons { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.conf-buttons button { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+.sr-due { font-size: 11px; color: var(--warn); border: 1px solid var(--warn); border-radius: 4px; padding: 0 5px; }
+
+.retro-cta { margin-top: 10px; }
+.retro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+@media (min-width: 620px) { .retro-grid { grid-template-columns: 1fr 1fr 1fr; } }
+.retro-card { background: var(--surface-2); border-radius: 10px; padding: 16px 12px; text-align: center; }
+.retro-big { font-size: 26px; font-weight: 700; color: var(--accent); }
+.retro-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -483,6 +518,19 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
       <input type="date" name="dueDate">
     </div>
     <div class="field">
+      <label>Estimate (minutes, optional)</label>
+      <input type="number" name="estimateMinutes" min="1" max="100000" autocomplete="off">
+      <div class="hint" id="estimate-hint"></div>
+    </div>
+    <div class="field">
+      <label>When/where will you do this? (optional)</label>
+      <input type="text" name="cue" maxlength="120" placeholder="e.g. after lunch, at my desk" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Contributes to goal (optional)</label>
+      <select name="goalId"></select>
+    </div>
+    <div class="field">
       <label>Subtasks (one per line, optional)</label>
       <textarea name="subtasks" rows="3" placeholder="Draft outline&#10;Review with team"></textarea>
     </div>
@@ -500,6 +548,10 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
     <div class="field">
       <label>Name</label>
       <input type="text" name="name" required maxlength="80" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Anchor — after I… (optional)</label>
+      <input type="text" name="cue" maxlength="120" placeholder="e.g. pour my morning coffee" autocomplete="off">
     </div>
     <div class="dialog-actions">
       <button type="button" class="ghost" data-action="close-dialog">Cancel</button>
@@ -526,6 +578,19 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
     <div class="field">
       <label>Linked project (optional)</label>
       <select name="projectId"></select>
+    </div>
+    <div class="field">
+      <label>Parent objective (optional)</label>
+      <select name="parentId"></select>
+    </div>
+    <div class="field">
+      <label>Horizon (optional)</label>
+      <select name="horizon">
+        <option value="">— none —</option>
+        <option value="annual">Annual</option>
+        <option value="quarter">Quarter</option>
+        <option value="week">This week</option>
+      </select>
     </div>
     <div class="field">
       <label>Progress tracking</label>
@@ -581,6 +646,13 @@ dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; mar
   <div id="settings-body"></div>
   <div class="dialog-actions">
     <button type="button" class="primary" data-action="close-dialog">Done</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-retro" class="wide">
+  <div id="retro-body"></div>
+  <div class="dialog-actions">
+    <button type="button" class="primary" data-action="close-dialog">Close</button>
   </div>
 </dialog>
 
@@ -662,6 +734,17 @@ function debounce(fn, ms) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
+// Spaced-repetition schedule: due N days out, ease 2.5 (Anki-ish).
+function makeSR(offsetDays) {
+  return { due: toLocalISO(addDays(new Date(), offsetDays)), interval: Math.max(1, offsetDays || 1), ease: 2.5 };
+}
+
+function percentile(sorted, p) {
+  if (!sorted.length) return 0;
+  const i = Math.min(sorted.length - 1, Math.floor(p / 100 * sorted.length));
+  return sorted[i];
+}
+
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -670,7 +753,7 @@ const $$ = (sel) => document.querySelectorAll(sel);
    ============================================================ */
 function defaultState() {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     settings: {
       lastActiveTab: "home",
       theme: "dark",
@@ -679,6 +762,7 @@ function defaultState() {
       pomodoro: { workMin: 25, breakMin: 5 },
       timer: null,
       notify: false,
+      capacityMin: 240,
       lastReviewDate: null
     },
     projects: [],
@@ -718,7 +802,28 @@ function migrate(data) {
     if (typeof p.notes !== "string") p.notes = "";
   });
   if (!Array.isArray(data.timeLog)) data.timeLog = [];
-  data.schemaVersion = 2;
+
+  // schema 2 -> 3: estimation, implementation intentions, OKR cascade, spaced repetition.
+  data.tasks.forEach(t => {
+    if (!("estimateMinutes" in t)) t.estimateMinutes = null;
+    if (typeof t.cue !== "string") t.cue = "";
+    if (!("goalId" in t)) t.goalId = null;
+  });
+  if (!Array.isArray(data.habits)) data.habits = [];
+  data.habits.forEach(h => {
+    if (typeof h.cue !== "string") h.cue = "";
+    if (!Array.isArray(h.completions)) h.completions = [];
+  });
+  if (!Array.isArray(data.ideas)) data.ideas = [];
+  data.ideas.forEach(i => { if (i.sr == null) i.sr = makeSR(0); });
+  if (!Array.isArray(data.goals)) data.goals = [];
+  data.goals.forEach(g => {
+    if (!("parentId" in g)) g.parentId = null;
+    if (!("horizon" in g)) g.horizon = null;
+    if (!("confidence" in g)) g.confidence = null;
+    if (g.sr == null) g.sr = makeSR(0);
+  });
+  data.schemaVersion = 3;
   return data;
 }
 
@@ -827,6 +932,149 @@ function reviewDue() {
   return parseISO(todayStr()) - parseISO(last) >= 7 * 86400000;
 }
 
+/* ---------- Spaced repetition (resurfacing) ---------- */
+function resurfaceQueue() {
+  const today = todayStr();
+  const items = [];
+  for (const i of state.ideas) if (i.sr && i.sr.due <= today) items.push({ kind: "idea", ref: i });
+  for (const g of state.goals) if (g.sr && g.sr.due <= today) items.push({ kind: "goal", ref: g });
+  return items;
+}
+function findSRItem(id, kind) {
+  return kind === "idea" ? state.ideas.find(i => i.id === id) : state.goals.find(g => g.id === id);
+}
+function srKeep(sr) {
+  sr.interval = Math.max(2, Math.round((sr.interval || 2) * (sr.ease || 2.5)));
+  sr.due = toLocalISO(addDays(new Date(), sr.interval));
+}
+function srSnooze(sr) {
+  sr.ease = Math.max(1.3, (sr.ease || 2.5) - 0.15);
+  sr.interval = 3;
+  sr.due = toLocalISO(addDays(new Date(), 3));
+}
+
+/* ---------- Estimation & calibration ---------- */
+function taskActualMin(t) { return (t.secondsLogged || 0) / 60; }
+function calibration() {
+  const ratios = [];
+  for (const t of state.tasks) {
+    if (t.done && t.estimateMinutes > 0 && (t.secondsLogged || 0) > 0) ratios.push(taskActualMin(t) / t.estimateMinutes);
+  }
+  ratios.sort((a, b) => a - b);
+  return { n: ratios.length, median: ratios.length ? percentile(ratios, 50) : null };
+}
+// Outside-view reference class: actual minutes of finished tasks similar to this one.
+function referenceClass(projectId, priority) {
+  return state.tasks
+    .filter(t => t.done && (t.secondsLogged || 0) > 0 && (t.projectId === projectId || t.priority === priority))
+    .map(taskActualMin).sort((a, b) => a - b);
+}
+
+/* ---------- Flow forecasting (cycle time + Monte Carlo) ---------- */
+function cycleTimesDays(filterFn) {
+  const out = [];
+  for (const t of state.tasks) {
+    if (t.done && t.completedAt && t.createdAt && (!filterFn || filterFn(t))) {
+      const d = (new Date(t.completedAt) - new Date(t.createdAt)) / 86400000;
+      if (d >= 0) out.push(d);
+    }
+  }
+  return out.sort((a, b) => a - b);
+}
+function throughputSeries(days, filterFn) {
+  const counts = new Array(days).fill(0);
+  const startISO = toLocalISO(addDays(new Date(), -(days - 1)));
+  const startD = parseISO(startISO);
+  for (const t of state.tasks) {
+    if (t.done && t.completedAt && (!filterFn || filterFn(t))) {
+      const ds = t.completedAt.slice(0, 10);
+      if (ds >= startISO) {
+        const idx = Math.round((parseISO(ds) - startD) / 86400000);
+        if (idx >= 0 && idx < days) counts[idx]++;
+      }
+    }
+  }
+  return counts;
+}
+function monteCarloDays(remaining, throughput, trials) {
+  trials = trials || 4000;
+  const total = throughput.reduce((a, b) => a + b, 0);
+  if (!remaining || total < 1) return null;
+  const res = [];
+  for (let i = 0; i < trials; i++) {
+    let done = 0, days = 0;
+    while (done < remaining && days < 3650) { done += throughput[(Math.random() * throughput.length) | 0]; days++; }
+    res.push(days);
+  }
+  res.sort((a, b) => a - b);
+  return { total, p50: percentile(res, 50), p70: percentile(res, 70), p85: percentile(res, 85), p95: percentile(res, 95) };
+}
+
+/* ---------- Peak-time detection ---------- */
+function completionHourCounts() {
+  const c = new Array(24).fill(0);
+  for (const t of state.tasks) if (t.done && t.completedAt) c[new Date(t.completedAt).getHours()]++;
+  return c;
+}
+function completionDowCounts() {
+  const c = new Array(7).fill(0); // Mon..Sun
+  for (const t of state.tasks) if (t.done && t.completedAt) c[(new Date(t.completedAt).getDay() + 6) % 7]++;
+  return c;
+}
+
+/* ---------- OKR cascade ---------- */
+function topGoals() {
+  const ids = new Set(state.goals.map(g => g.id));
+  return state.goals.filter(g => !g.parentId || !ids.has(g.parentId)); // orphans (deleted parent) render at top
+}
+function childGoals(id) { return state.goals.filter(g => g.parentId === id); }
+function goalOpenTaskCount(id) { return state.tasks.filter(t => t.goalId === id && !t.done).length; }
+function objectiveCandidates(excludeId) { return state.goals.filter(g => !g.parentId && g.id !== excludeId); }
+function confBucket(c) { return c >= 75 ? "hi" : c >= 50 ? "mid" : "lo"; }
+
+/* ---------- Overload + insights ---------- */
+function plannedMinutesToday() {
+  const today = todayStr();
+  const ids = new Set(state.settings.focus.taskIds);
+  for (const t of openTasks()) if (t.dueDate === today) ids.add(t.id);
+  let sum = 0;
+  for (const id of ids) { const t = state.tasks.find(x => x.id === id); if (t && t.estimateMinutes > 0) sum += t.estimateMinutes; }
+  return sum;
+}
+function runEndingAt(habit, iso) {
+  const set = new Set(habit.completions);
+  let run = 0, d = parseISO(iso);
+  while (set.has(toLocalISO(d))) { run++; d = addDays(d, -1); }
+  return run;
+}
+// Gentle, variance-aware nudges — kept few to avoid crying wolf.
+function insights() {
+  const out = [];
+  const today = todayStr();
+  const tp = throughputSeries(28, null);
+  const thisWeek = tp.slice(21).reduce((a, b) => a + b, 0);
+  const priorAvg = tp.slice(0, 21).reduce((a, b) => a + b, 0) / 3;
+  if (priorAvg >= 3 && thisWeek < priorAvg * 0.75) {
+    out.push({ icon: "📉", text: `Completions are down ${Math.round((1 - thisWeek / priorAvg) * 100)}% vs your recent average.` });
+  }
+  const od = openTasks().filter(t => t.dueDate && t.dueDate < today).length;
+  if (od >= 5) out.push({ icon: "⏰", text: `${od} tasks are overdue — a quick sweep would clear the backlog.` });
+  for (const h of state.habits) {
+    if (h.completions.includes(today)) continue;
+    let last = null;
+    for (const d of h.completions) if (!last || d > last) last = d;
+    if (!last) continue;
+    const gap = Math.round((parseISO(today) - parseISO(last)) / 86400000);
+    if (gap >= 2 && gap <= 14 && runEndingAt(h, last) >= 7) {
+      out.push({ icon: "🔥", text: `Your “${h.name}” streak of ${runEndingAt(h, last)} ended ${gap}d ago — restart it?` });
+    }
+  }
+  const planned = plannedMinutesToday();
+  const cap = state.settings.capacityMin || 240;
+  if (planned > cap) out.push({ icon: "⚠️", text: `You've planned ${fmtDuration(planned * 60)} of estimated work today (capacity ${fmtDuration(cap * 60)}).` });
+  return out.slice(0, 4);
+}
+
 /* ============================================================
    4. THEME
    ============================================================ */
@@ -922,6 +1170,8 @@ function renderHome() {
         </div>
       </div>
 
+      ${renderInsightsCard()}
+
       <div class="card">
         <h2>Today's habits <button class="icon-btn" data-action="add-habit" title="New habit">＋</button></h2>
         ${renderHabits()}
@@ -960,6 +1210,43 @@ function renderHome() {
     </div>`;
 }
 
+function renderInsightsCard() {
+  const ins = insights();
+  if (!ins.length) return "";
+  return `
+    <div class="card span-2 insights">
+      <h2>Insights</h2>
+      ${ins.map(i => `<div class="insight"><span class="insight-ico">${i.icon}</span><span>${escapeHtml(i.text)}</span></div>`).join("")}
+    </div>`;
+}
+
+function renderResurfaceCard() {
+  const q = resurfaceQueue();
+  if (!q.length) return "";
+  const rows = q.map(it => {
+    const r = it.ref;
+    const label = it.kind === "idea" ? escapeHtml(r.text) : `🎯 ${escapeHtml(r.title)}`;
+    const extra = it.kind === "idea"
+      ? `<button class="icon-btn" data-action="promote-idea" data-id="${r.id}" title="Promote to project">→ project</button>
+         <button class="icon-btn danger-btn" data-action="del-idea" data-id="${r.id}" title="Drop">✕</button>`
+      : `<button class="icon-btn" data-action="switch-tab" data-id="home" title="Review on Home">open</button>`;
+    return `
+      <li>
+        <span class="grow idea-text">${label}</span>
+        ${extra}
+        <button class="icon-btn" data-action="sr-keep" data-id="${r.id}" data-kind="${it.kind}" title="Still relevant — resurface later">keep</button>
+        <button class="icon-btn" data-action="sr-snooze" data-id="${r.id}" data-kind="${it.kind}" title="Snooze a few days">snooze</button>
+        <button class="icon-btn" data-action="sr-mute" data-id="${r.id}" data-kind="${it.kind}" title="Stop resurfacing">mute</button>
+      </li>`;
+  }).join("");
+  return `
+    <div class="card span-2">
+      <h2>🔁 Resurface <span class="meta">${q.length} due</span></h2>
+      <p class="empty" style="padding-top:0">Spaced check-ins so goals &amp; ideas don't rot. Keep pushes it further out; snooze brings it back soon.</p>
+      <ul class="plain">${rows}</ul>
+    </div>`;
+}
+
 function renderHabits() {
   if (!state.habits.length) return `<p class="empty">No habits yet. Add one to start a streak.</p>`;
   const today = todayStr();
@@ -970,7 +1257,7 @@ function renderHabits() {
       <div class="habit-row">
         <button class="habit-pill ${done ? "done-today" : ""}" data-action="toggle-habit" data-id="${h.id}">
           <span class="checkbox ${done ? "checked" : ""}">${done ? "✓" : ""}</span>
-          <span>${escapeHtml(h.name)}</span>
+          <span class="grow">${escapeHtml(h.name)}${h.cue ? `<span class="hcue">⛓ after ${escapeHtml(h.cue)}</span>` : ""}</span>
           <span class="streak">${streak > 0 ? "🔥 " + streak : ""}</span>
         </button>
         <button class="icon-btn" data-action="habit-detail" data-id="${h.id}" title="History &amp; heatmap">▦</button>
@@ -991,6 +1278,7 @@ function taskRowHtml(t, opts) {
   const overdue = t.dueDate && !t.done && t.dueDate < todayStr();
   const prioLabel = { 1: "HIGH", 2: "MED", 3: "LOW" }[t.priority] || "MED";
   const subDone = t.subtasks.filter(s => s.done).length;
+  const goal = t.goalId ? state.goals.find(g => g.id === t.goalId) : null;
   return `
     <li>
       <button class="checkbox ${t.done ? "checked" : ""}" data-action="toggle-task" data-id="${t.id}" title="Toggle done">${t.done ? "✓" : ""}</button>
@@ -999,10 +1287,13 @@ function taskRowHtml(t, opts) {
         <div class="meta">
           <span class="prio p${t.priority}">${prioLabel}</span>
           ${t.dueDate ? `<span class="${overdue ? "overdue" : ""}"> 📅 ${fmtDate(t.dueDate)}${overdue ? " (overdue)" : ""}</span>` : ""}
+          ${t.estimateMinutes ? `<span class="estcount" title="Estimate">~${fmtDuration(t.estimateMinutes * 60)}</span>` : ""}
           ${t.subtasks.length ? `<span class="subcount">☑ ${subDone}/${t.subtasks.length}</span>` : ""}
           ${t.secondsLogged ? `<span class="timecount">⏱ ${fmtDuration(t.secondsLogged)}</span>` : ""}
+          ${goal ? ` <span class="goal-tag" title="Contributes to goal">🎯 ${escapeHtml(goal.title)}</span>` : ""}
           ${opts.showProject && proj ? ` <span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}
         </div>
+        ${t.cue ? `<div class="cue">▸ ${escapeHtml(t.cue)}</div>` : ""}
         ${opts.showSubtasks ? renderSubtasks(t) : ""}
       </div>
       ${opts.showFocus ? `<button class="icon-btn" data-action="start-focus" data-id="${t.id}" title="Start focus session">⏱</button>` : ""}
@@ -1022,29 +1313,39 @@ function renderSubtasks(t) {
 
 function renderGoals() {
   if (!state.goals.length) return `<p class="empty">No goals yet. What are you working toward?</p>`;
-  return state.goals.map(g => {
-    const pct = goalProgress(g);
-    const proj = g.projectId ? getProject(g.projectId) : null;
-    const milestones = g.mode === "milestones" ? `
-      <ul class="plain milestones">
-        ${g.milestones.map(m => `
-          <li>
-            <button class="checkbox ${m.done ? "checked" : ""}" data-action="toggle-milestone" data-id="${g.id}" data-mid="${m.id}">${m.done ? "✓" : ""}</button>
-            <span class="grow ${m.done ? "task-title done" : ""}">${escapeHtml(m.title)}</span>
-          </li>`).join("")}
-      </ul>` : "";
-    return `
-      <div class="goal">
-        <div class="goal-head">
-          <span class="grow">${escapeHtml(g.title)} ${proj ? `<span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}</span>
-          <span class="meta">${pct}%</span>
-          <button class="icon-btn" data-action="edit-goal" data-id="${g.id}" title="Edit">✎</button>
-          <button class="icon-btn danger-btn" data-action="del-goal" data-id="${g.id}" title="Delete">✕</button>
-        </div>
-        <div class="bar"><div style="width:${pct}%"></div></div>
-        ${milestones}
-      </div>`;
-  }).join("");
+  const seen = new Set();
+  return topGoals().map(g => goalCardHtml(g, 0, seen)).join("");
+}
+
+function goalCardHtml(g, depth, seen) {
+  seen = seen || new Set();
+  if (seen.has(g.id)) return "";
+  seen.add(g.id);
+  const pct = goalProgress(g);
+  const proj = g.projectId ? getProject(g.projectId) : null;
+  const horizon = g.horizon ? `<span class="horizon-tag">${{ annual: "Annual", quarter: "Quarter", week: "Week" }[g.horizon]}</span>` : "";
+  const conf = g.confidence != null ? `<span class="conf conf-${confBucket(g.confidence)}" title="Confidence ${g.confidence}%">●</span>` : "";
+  const milestones = g.mode === "milestones" ? `
+    <ul class="plain milestones">
+      ${g.milestones.map(m => `
+        <li>
+          <button class="checkbox ${m.done ? "checked" : ""}" data-action="toggle-milestone" data-id="${g.id}" data-mid="${m.id}">${m.done ? "✓" : ""}</button>
+          <span class="grow ${m.done ? "task-title done" : ""}">${escapeHtml(m.title)}</span>
+        </li>`).join("")}
+    </ul>` : "";
+  const kids = childGoals(g.id).map(c => goalCardHtml(c, depth + 1, seen)).join("");
+  return `
+    <div class="goal ${depth ? "goal-child" : ""}">
+      <div class="goal-head">
+        <span class="grow">${conf}${escapeHtml(g.title)} ${horizon}${proj ? ` <span class="proj-label">${escapeHtml(proj.name)}</span>` : ""}</span>
+        <span class="meta">${pct}%</span>
+        <button class="icon-btn" data-action="edit-goal" data-id="${g.id}" title="Edit">✎</button>
+        <button class="icon-btn danger-btn" data-action="del-goal" data-id="${g.id}" title="Delete">✕</button>
+      </div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      ${milestones}
+      ${kids}
+    </div>`;
 }
 
 function renderLinks(links, context) {
@@ -1129,9 +1430,16 @@ function renderToday() {
   };
 
   const fmtToday = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const planned = plannedMinutesToday();
+  const cap = state.settings.capacityMin || 240;
+  const overloadBanner = planned > cap
+    ? `<div class="card span-2 overload-banner">⚠️ You've planned <strong>${fmtDuration(planned * 60)}</strong> of estimated work today — over your ${fmtDuration(cap * 60)} capacity. Consider deferring something.</div>`
+    : "";
 
   $("#view").innerHTML = `
     <div class="grid">
+      ${overloadBanner}
+      ${renderResurfaceCard()}
       <div class="card span-2">
         <h2>${escapeHtml(fmtToday)}
           <span class="h2-actions"><button class="ghost" data-action="start-focus" title="Start a ${state.settings.pomodoro.workMin}-minute focus session">⏱ Start focus</button></span>
@@ -1271,6 +1579,35 @@ function renderStats() {
     `<div class="chart-row"><span class="lbl">${escapeHtml(h.name)}</span><span class="track"><span class="fill" style="width:${habitRate(h, 30)}%"></span></span><span class="val">${habitRate(h, 30)}%</span></div>`
   ).join("") : `<p class="empty">No habits yet.</p>`;
 
+  // Estimation calibration
+  const cal = calibration();
+  const calBody = cal.median != null
+    ? `<div class="big-stat"><span class="big-num">${cal.median.toFixed(2)}×</span> <span>your estimate, typically</span></div>
+       <p class="meta">${cal.median > 1.15 ? "You tend to under-estimate — pad new estimates." : cal.median < 0.85 ? "You tend to over-estimate — you're faster than you think." : "Your estimates are well-calibrated."} Based on ${cal.n} timed task${cal.n === 1 ? "" : "s"}.</p>`
+    : `<p class="empty">Add a time estimate to a task and log focus time on it to calibrate your estimates.</p>`;
+
+  // Cycle time
+  const cyc = cycleTimesDays(null);
+  const cycBody = cyc.length >= 4
+    ? `<div class="big-stat"><span class="big-num">${Math.ceil(percentile(cyc, 85))}d</span> <span>covers 85% of tasks</span></div>
+       <p class="meta">Median ${Math.round(percentile(cyc, 50))}d from created to done; 95% within ${Math.ceil(percentile(cyc, 95))}d.</p>`
+    : `<p class="empty">Finish a few tasks to see how long they take from creation to done.</p>`;
+
+  // Peak time
+  const hourLabel = (h) => { const ap = h < 12 ? "am" : "pm"; let hh = h % 12; if (hh === 0) hh = 12; return hh + ap; };
+  const dowNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const hc = completionHourCounts(), dc = completionDowCounts();
+  const maxH = Math.max(1, ...hc), maxD = Math.max(1, ...dc);
+  const enoughPeak = totalDone >= 5;
+  const hoursBody = enoughPeak
+    ? `<p class="meta">Peak: <strong>${hourLabel(hc.indexOf(Math.max(...hc)))}</strong></p>` +
+      hc.map((c, h) => c > 0 ? `<div class="chart-row"><span class="lbl">${hourLabel(h)}</span><span class="track"><span class="fill" style="width:${Math.round(c / maxH * 100)}%"></span></span><span class="val">${c}</span></div>` : "").join("")
+    : `<p class="empty">Complete more tasks to reveal your peak hours.</p>`;
+  const daysBody = enoughPeak
+    ? `<p class="meta">Strongest day: <strong>${dowNames[dc.indexOf(Math.max(...dc))]}</strong></p>` +
+      dc.map((c, i) => `<div class="chart-row"><span class="lbl">${dowNames[i]}</span><span class="track"><span class="fill" style="width:${Math.round(c / maxD * 100)}%"></span></span><span class="val">${c}</span></div>`).join("")
+    : `<p class="empty">Complete more tasks to reveal your best days.</p>`;
+
   $("#view").innerHTML = `
     <div class="grid">
       <div class="card span-2">
@@ -1281,10 +1618,27 @@ function renderStats() {
           <div class="stat"><div class="num">${velocity}</div><div class="label">Tasks / week</div></div>
           <div class="stat"><div class="num">${fmtDuration(focusSeconds(weekStart))}</div><div class="label">Focus this week</div></div>
         </div>
+        <div class="retro-cta"><button class="primary" data-action="open-retro">✨ Year in review</button></div>
       </div>
       <div class="card">
         <h2>Tasks completed per week</h2>
         ${weekChart}
+      </div>
+      <div class="card">
+        <h2>Estimation accuracy</h2>
+        ${calBody}
+      </div>
+      <div class="card">
+        <h2>Most productive hours</h2>
+        ${hoursBody}
+      </div>
+      <div class="card">
+        <h2>Best days of the week</h2>
+        ${daysBody}
+      </div>
+      <div class="card">
+        <h2>Cycle time (created → done)</h2>
+        ${cycBody}
       </div>
       <div class="card">
         <h2>Busiest projects (open tasks)</h2>
@@ -1298,6 +1652,35 @@ function renderStats() {
         <h2>Habit consistency (last 30 days)</h2>
         ${habitRows}
       </div>
+    </div>`;
+}
+
+/* ---------- Year-in-review retrospective ---------- */
+function renderRetro() {
+  const year = new Date().getFullYear();
+  const inYear = (iso) => iso && new Date(iso).getFullYear() === year;
+  const doneThisYear = state.tasks.filter(t => t.done && inYear(t.completedAt));
+  const focusThisYear = state.timeLog.filter(l => l.date && Number(l.date.slice(0, 4)) === year).reduce((s, l) => s + (l.seconds || 0), 0);
+  const bestHabit = state.habits.map(h => ({ name: h.name, s: bestStreak(h) })).sort((a, b) => b.s - a.s)[0];
+  const hc = completionHourCounts(), dc = completionDowCounts();
+  const dowNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const hourLabel = (h) => { const ap = h < 12 ? "am" : "pm"; let hh = h % 12; if (hh === 0) hh = 12; return hh + ap; };
+  const topProj = [...state.timeLog.reduce((m, l) => m.set(l.projectId, (m.get(l.projectId) || 0) + (l.seconds || 0)), new Map()).entries()]
+    .filter(([id]) => id).sort((a, b) => b[1] - a[1])[0];
+  const totalDone = state.tasks.filter(t => t.done).length;
+
+  const cards = [
+    { big: doneThisYear.length, label: `tasks completed in ${year}` },
+    { big: fmtDuration(focusThisYear), label: `focused this year` },
+    { big: bestHabit && bestHabit.s ? bestHabit.s + "d" : "—", label: bestHabit && bestHabit.s ? `longest streak — ${escapeHtml(bestHabit.name)}` : "no habit streaks yet" },
+    { big: totalDone >= 5 ? hourLabel(hc.indexOf(Math.max(...hc))) : "—", label: "your most productive hour" },
+    { big: totalDone >= 5 ? dowNames[dc.indexOf(Math.max(...dc))] : "—", label: "your strongest day" },
+    { big: topProj ? fmtDuration(topProj[1]) : "—", label: topProj ? `most focus — ${escapeHtml(getProject(topProj[0])?.name || "a project")}` : "no focus logged yet" },
+  ];
+  $("#retro-body").innerHTML = `
+    <h3>✨ ${year} in review</h3>
+    <div class="retro-grid">
+      ${cards.map(c => `<div class="retro-card"><div class="retro-big">${c.big}</div><div class="retro-label">${c.label}</div></div>`).join("")}
     </div>`;
 }
 
@@ -1316,6 +1699,19 @@ function renderProject(id) {
   const tasksBody = view === "board" ? renderBoard(p.id) : (
     allTasks.length ? `<ul class="plain">${allTasks.map(t => taskRowHtml(t, { showSubtasks: true, showFocus: true })).join("")}</ul>` : `<p class="empty">No tasks yet.</p>`
   );
+
+  // Monte-Carlo finish-date forecast from this project's recent throughput.
+  const openCount = state.tasks.filter(t => t.projectId === id && !t.done).length;
+  const mc = monteCarloDays(openCount, throughputSeries(60, t => t.projectId === id), 4000);
+  const dt = (n) => addDays(new Date(), n).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const forecastCard = openCount > 0 ? `
+    <div class="card span-2">
+      <h2>🔮 Finish forecast</h2>
+      ${mc ? `
+        <div class="big-stat"><span class="big-num">${dt(mc.p85)}</span> <span>85% confident</span></div>
+        <p class="meta">${openCount} task${openCount === 1 ? "" : "s"} left · 50% by ${dt(mc.p50)} · 70% by ${dt(mc.p70)} · 95% by ${dt(mc.p95)}. Simulated from your recent completion pace — not a promise.</p>`
+        : `<p class="empty">Complete a few tasks in this project to forecast a finish date from your pace.</p>`}
+    </div>` : "";
 
   $("#view").innerHTML = `
     <div class="project-head">
@@ -1338,6 +1734,7 @@ function renderProject(id) {
         </h2>
         ${tasksBody}
       </div>
+      ${forecastCard}
       <div class="card">
         <h2>Notes</h2>
         <textarea id="project-notes" data-id="${p.id}" placeholder="Project notes…">${escapeHtml(p.notes)}</textarea>
@@ -1444,7 +1841,7 @@ function logFocus(taskId, seconds) {
     const t = state.tasks.find(x => x.id === taskId);
     if (t) { t.secondsLogged = (t.secondsLogged || 0) + seconds; projectId = t.projectId; }
   }
-  state.timeLog.push({ id: uid("tl"), taskId: taskId || null, projectId, date: todayStr(), seconds });
+  state.timeLog.push({ id: uid("tl"), taskId: taskId || null, projectId, date: todayStr(), at: new Date().toISOString(), seconds });
 }
 
 function beep() {
@@ -1657,6 +2054,8 @@ const actions = {
     f.reset();
     f.elements.id.value = "";
     f.elements.projectId.value = projectId;
+    populateTaskGoalSelect(null);
+    $("#estimate-hint").textContent = "";
     $("#dlg-task-title").textContent = "New task";
     openDialog("#dlg-task");
   },
@@ -1670,7 +2069,11 @@ const actions = {
     f.elements.title.value = t.title;
     f.elements.priority.value = String(t.priority);
     f.elements.dueDate.value = t.dueDate || "";
+    f.elements.estimateMinutes.value = t.estimateMinutes || "";
+    f.elements.cue.value = t.cue || "";
     f.elements.subtasks.value = t.subtasks.map(s => s.title).join("\n");
+    populateTaskGoalSelect(t.goalId);
+    updateEstimateHint();
     $("#dlg-task-title").textContent = "Edit task";
     openDialog("#dlg-task");
   },
@@ -1764,6 +2167,7 @@ const actions = {
     f.elements.id.value = "";
     $("#goal-progress-label").textContent = "0";
     populateGoalProjectSelect(null);
+    populateGoalParentSelect(null, null);
     syncGoalModeFields();
     $("#dlg-goal-title").textContent = "New goal";
     openDialog("#dlg-goal");
@@ -1779,7 +2183,9 @@ const actions = {
     f.elements.progress.value = String(g.progress || 0);
     $("#goal-progress-label").textContent = String(g.progress || 0);
     f.elements.milestones.value = g.milestones.map(m => m.title).join("\n");
+    f.elements.horizon.value = g.horizon || "";
     populateGoalProjectSelect(g.projectId);
+    populateGoalParentSelect(g.parentId, g.id);
     syncGoalModeFields();
     $("#dlg-goal-title").textContent = "Edit goal";
     openDialog("#dlg-goal");
@@ -1882,6 +2288,24 @@ const actions = {
     const t = state.tasks.find(x => x.id === id);
     if (t) { t.dueDate = null; save(); renderReview(); renderAll(); }
   },
+  "set-confidence": (id, el) => {
+    const g = state.goals.find(x => x.id === id);
+    if (g) { g.confidence = Number(el.dataset.conf); save(); renderReview(); renderAll(); }
+  },
+
+  /* --- spaced repetition --- */
+  "sr-keep": (id, el) => { const it = findSRItem(id, el.dataset.kind); if (it && it.sr) { srKeep(it.sr); save(); renderAll(); refreshReview(); } },
+  "sr-snooze": (id, el) => { const it = findSRItem(id, el.dataset.kind); if (it && it.sr) { srSnooze(it.sr); save(); renderAll(); refreshReview(); } },
+  "sr-mute": (id, el) => { const it = findSRItem(id, el.dataset.kind); if (it) { it.sr = null; save(); renderAll(); refreshReview(); } },
+
+  /* --- retrospective --- */
+  "open-retro": () => { renderRetro(); openDialog("#dlg-retro"); },
+  "save-capacity": () => {
+    const h = Number($("#set-capacity").value);
+    state.settings.capacityMin = Math.min(24 * 60, Math.max(30, Math.round((h || 4) * 60)));
+    save(); renderSettings();
+    showToast("Daily capacity saved", null);
+  },
 
   /* --- settings --- */
   "open-settings": () => { renderSettings(); openDialog("#dlg-settings"); },
@@ -1961,9 +2385,53 @@ function syncGoalModeFields() {
   $("#goal-milestones-field").hidden = mode !== "milestones";
 }
 
+function populateGoalParentSelect(selectedId, excludeId) {
+  const sel = $("#form-goal").elements.parentId;
+  sel.innerHTML = `<option value="">— none (top-level) —</option>` +
+    objectiveCandidates(excludeId).map(g =>
+      `<option value="${g.id}" ${g.id === selectedId ? "selected" : ""}>${escapeHtml(g.title)}</option>`
+    ).join("");
+}
+
+function populateTaskGoalSelect(selectedId) {
+  const sel = $("#form-task").elements.goalId;
+  sel.innerHTML = `<option value="">— none —</option>` +
+    state.goals.map(g =>
+      `<option value="${g.id}" ${g.id === selectedId ? "selected" : ""}>${g.parentId ? "↳ " : ""}${escapeHtml(g.title)}</option>`
+    ).join("");
+}
+
+// Outside-view hint in the task dialog: what similar tasks actually took.
+function updateEstimateHint() {
+  const el = $("#estimate-hint");
+  if (!el) return;
+  const f = $("#form-task");
+  const rc = referenceClass(f.elements.projectId.value, Number(f.elements.priority.value));
+  if (rc.length < 3) { el.textContent = ""; return; }
+  const p50 = Math.round(percentile(rc, 50)), p85 = Math.round(percentile(rc, 85));
+  let msg = `Similar tasks took ~${p50}m (85% within ${p85}m).`;
+  const est = Number(f.elements.estimateMinutes.value);
+  if (est > 0 && p50 / est >= 1.3) msg += ` Your ${est}m estimate may be optimistic.`;
+  el.textContent = msg;
+}
+
+function refreshReview() { if ($("#dlg-review")?.open) renderReview(); }
+
+// Guard against goal-hierarchy cycles when re-parenting.
+function isDescendant(candidateId, ancestorId) {
+  let cur = state.goals.find(g => g.id === candidateId);
+  const seen = new Set();
+  while (cur && cur.parentId && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    if (cur.parentId === ancestorId) return true;
+    cur = state.goals.find(g => g.id === cur.parentId);
+  }
+  return false;
+}
+
 /* ---------- Review wizard ---------- */
 let reviewStep = 0;
-const REVIEW_STEPS = ["Summary", "Ideas inbox", "Overdue tasks", "Goals", "Plan ahead"];
+const REVIEW_STEPS = ["Summary", "Get Clear", "Get Current", "Get Creative", "Plan ahead"];
 
 function openReview() {
   reviewStep = 0;
@@ -1977,6 +2445,7 @@ function renderReview() {
   $("#review-progress").textContent = `Step ${reviewStep + 1} of ${total} — ${REVIEW_STEPS[reviewStep]}`;
 
   const weekStart = weekStartISO(new Date());
+  const today = todayStr();
   let body = "";
 
   if (reviewStep === 0) {
@@ -1987,20 +2456,30 @@ function renderReview() {
         <div class="stat"><div class="num">${doneThisWeek}</div><div class="label">Tasks completed</div></div>
         <div class="stat"><div class="num">${fmtDuration(focusSeconds(weekStart))}</div><div class="label">Focus time</div></div>
         <div class="stat"><div class="num">${state.ideas.length}</div><div class="label">Ideas to triage</div></div>
-        <div class="stat"><div class="num">${openTasks().filter(t => t.dueDate && t.dueDate < todayStr()).length}</div><div class="label">Overdue</div></div>
+        <div class="stat"><div class="num">${openTasks().filter(t => t.dueDate && t.dueDate < today).length}</div><div class="label">Overdue</div></div>
       </div>
-      <p class="empty">Let's clear the inbox, sweep overdue work, and check your goals.</p>`;
+      <p class="empty">A proper GTD review in three passes — <strong>Get Clear</strong> (empty inboxes), <strong>Get Current</strong> (sweep what's live), <strong>Get Creative</strong> (revisit goals).</p>`;
   } else if (reviewStep === 1) {
-    body = `<h4>Triage your ideas</h4>` + (state.ideas.length ? `
-      <ul class="plain">${state.ideas.slice().sort((a, b) => a.createdAt < b.createdAt ? 1 : -1).map(i => `
-        <li>
-          <span class="grow idea-text">${escapeHtml(i.text)}</span>
-          <button class="icon-btn" data-action="promote-idea" data-id="${i.id}">→ project</button>
-          <button class="icon-btn danger-btn" data-action="del-idea" data-id="${i.id}">✕</button>
-        </li>`).join("")}</ul>` : `<p class="empty">Inbox is clear. 🎉</p>`);
+    // GET CLEAR — process inboxes to zero.
+    const resurfaceIdeas = resurfaceQueue().filter(it => it.kind === "idea");
+    body = `<h4>Get Clear — empty your inboxes</h4>
+      <p class="meta">Process every idea: promote it to a project, or drop it. Aim for zero.</p>`
+      + (state.ideas.length ? `
+        <ul class="plain">${state.ideas.slice().sort((a, b) => a.createdAt < b.createdAt ? 1 : -1).map(i => `
+          <li>
+            <span class="grow idea-text">${escapeHtml(i.text)}${i.sr && i.sr.due <= today ? ` <span class="sr-due">↻ due</span>` : ""}</span>
+            <button class="icon-btn" data-action="promote-idea" data-id="${i.id}">→ project</button>
+            <button class="icon-btn" data-action="sr-keep" data-id="${i.id}" data-kind="idea" title="Keep, resurface later">keep</button>
+            <button class="icon-btn danger-btn" data-action="del-idea" data-id="${i.id}">✕</button>
+          </li>`).join("")}</ul>`
+        : `<p class="empty">Inbox is clear. 🎉</p>`)
+      + (resurfaceIdeas.length ? `<p class="meta">${resurfaceIdeas.length} idea(s) flagged for a resurface check today.</p>` : "");
   } else if (reviewStep === 2) {
-    const overdue = sortTasks(openTasks().filter(t => t.dueDate && t.dueDate < todayStr()));
-    body = `<h4>Sweep overdue tasks</h4>` + (overdue.length ? `
+    // GET CURRENT — sweep overdue, note orphan work.
+    const overdue = sortTasks(openTasks().filter(t => t.dueDate && t.dueDate < today));
+    const orphans = openTasks().filter(t => !t.goalId).length;
+    const linked = state.goals.length;
+    body = `<h4>Get Current — sweep what's live</h4>` + (overdue.length ? `
       <ul class="plain">${overdue.map(t => `
         <li>
           <button class="checkbox" data-action="toggle-task" data-id="${t.id}" title="Mark done"></button>
@@ -2008,12 +2487,31 @@ function renderReview() {
             <div class="meta overdue">📅 ${fmtDate(t.dueDate)} ${getProject(t.projectId) ? `<span class="proj-label">${escapeHtml(getProject(t.projectId).name)}</span>` : ""}</div></div>
           <button class="icon-btn" data-action="review-resched-today" data-id="${t.id}" title="Move to today">Today</button>
           <button class="icon-btn" data-action="review-clear-due" data-id="${t.id}" title="Clear due date">Clear</button>
-        </li>`).join("")}</ul>` : `<p class="empty">Nothing overdue. Nicely done.</p>`);
+        </li>`).join("")}</ul>` : `<p class="empty">Nothing overdue. Nicely done.</p>`)
+      + (linked ? `<p class="meta">${orphans} open task(s) aren't linked to any goal — check they still matter, or attach them to an objective.</p>` : "");
   } else if (reviewStep === 3) {
-    body = `<h4>Check your goals</h4>` + (state.goals.length ? `
-      ${state.goals.map(g => { const pct = goalProgress(g); return `
-        <div class="goal"><div class="goal-head"><span class="grow">${escapeHtml(g.title)}</span><span class="meta">${pct}%</span></div>
-        <div class="bar"><div style="width:${pct}%"></div></div></div>`; }).join("")}` : `<p class="empty">No goals set. Consider adding one from Home.</p>`);
+    // GET CREATIVE — revisit goals/OKRs, set a weekly confidence.
+    const resurfaceGoals = resurfaceQueue().filter(it => it.kind === "goal");
+    body = `<h4>Get Creative — revisit your goals</h4>
+      <p class="meta">For each, set this week's confidence so trends are visible over time.</p>`
+      + (state.goals.length ? state.goals.map(g => {
+        const pct = goalProgress(g);
+        const openT = goalOpenTaskCount(g.id);
+        return `
+          <div class="goal">
+            <div class="goal-head">
+              <span class="grow">${g.parentId ? "↳ " : ""}${escapeHtml(g.title)}${openT === 0 ? ` <span class="sr-due">no active tasks</span>` : ""}</span>
+              <span class="meta">${pct}%</span>
+            </div>
+            <div class="bar"><div style="width:${pct}%"></div></div>
+            <div class="conf-buttons">
+              <button class="${g.confidence === 25 ? "primary" : "ghost"}" data-action="set-confidence" data-id="${g.id}" data-conf="25">🔴 Off track</button>
+              <button class="${g.confidence === 60 ? "primary" : "ghost"}" data-action="set-confidence" data-id="${g.id}" data-conf="60">🟡 At risk</button>
+              <button class="${g.confidence === 90 ? "primary" : "ghost"}" data-action="set-confidence" data-id="${g.id}" data-conf="90">🟢 On track</button>
+            </div>
+          </div>`;
+      }).join("") : `<p class="empty">No goals set. Consider adding one from Home.</p>`)
+      + (resurfaceGoals.length ? `<p class="meta">${resurfaceGoals.length} goal(s) are due a relevance check — keep or mute them from the 🔁 Resurface card on Today.</p>` : "");
   } else {
     body = `
       <h4>Plan ahead</h4>
@@ -2054,6 +2552,14 @@ function renderSettings() {
         <span>/</span>
         <input type="number" id="set-break" min="1" max="60" value="${s.pomodoro.breakMin}" style="width:64px">
         <button data-action="save-pomodoro">Save</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div><strong>Daily capacity</strong><div class="desc">Warn on Today when planned estimates exceed this.</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" id="set-capacity" min="0.5" max="24" step="0.5" value="${(s.capacityMin / 60).toFixed(1).replace(/\.0$/, "")}" style="width:64px">
+        <span>h</span>
+        <button data-action="save-capacity">Save</button>
       </div>
     </div>
     <div class="settings-row">
@@ -2100,7 +2606,7 @@ document.body.addEventListener("submit", (e) => {
     const input = $("#idea-input");
     const text = input.value.trim();
     if (!text) return;
-    state.ideas.push({ id: uid("i"), text, createdAt: new Date().toISOString() });
+    state.ideas.push({ id: uid("i"), text, sr: makeSR(4), createdAt: new Date().toISOString() });
     save(); renderAll();
     $("#idea-input")?.focus();
     return;
@@ -2129,12 +2635,18 @@ document.body.addEventListener("submit", (e) => {
     const title = d.title.value.trim();
     if (!title) return;
     const lines = d.subtasks.value.split("\n").map(s => s.trim()).filter(Boolean);
+    const estimateMinutes = Number(d.estimateMinutes.value) > 0 ? Number(d.estimateMinutes.value) : null;
+    const cue = d.cue.value.trim();
+    const goalId = d.goalId.value || null;
     if (d.id.value) {
       const t = state.tasks.find(x => x.id === d.id.value);
       if (t) {
         t.title = title;
         t.priority = Number(d.priority.value);
         t.dueDate = d.dueDate.value || null;
+        t.estimateMinutes = estimateMinutes;
+        t.cue = cue;
+        t.goalId = goalId;
         // Rebuild subtasks from the textarea, keeping done-status for titles that survive the edit.
         const oldByTitle = new Map(t.subtasks.map(s => [s.title, s]));
         t.subtasks = lines.map(line => {
@@ -2146,6 +2658,7 @@ document.body.addEventListener("submit", (e) => {
       state.tasks.push({
         id: uid("t"), projectId: d.projectId.value, title,
         priority: Number(d.priority.value), dueDate: d.dueDate.value || null,
+        estimateMinutes, cue, goalId,
         stage: "todo", subtasks: lines.map(line => ({ id: uid("s"), title: line, done: false })),
         secondsLogged: 0, done: false, completedAt: null, createdAt: new Date().toISOString()
       });
@@ -2157,7 +2670,7 @@ document.body.addEventListener("submit", (e) => {
     const d = form.elements;
     const name = d.name.value.trim();
     if (!name) return;
-    state.habits.push({ id: uid("h"), name, completions: [], createdAt: new Date().toISOString() });
+    state.habits.push({ id: uid("h"), name, cue: d.cue.value.trim(), completions: [], createdAt: new Date().toISOString() });
     save(); renderAll();
   }
 
@@ -2174,16 +2687,23 @@ document.body.addEventListener("submit", (e) => {
       const old = oldByTitle.get(line);
       return { id: old?.id || uid("m"), title: line, done: old?.done || false };
     });
+    const horizon = d.horizon.value || null;
+    let parentId = d.parentId.value || null;
+    // Prevent cycles: a goal can't sit under one of its own descendants (or itself).
+    if (parentId && existing && (parentId === existing.id || isDescendant(parentId, existing.id))) parentId = null;
     if (existing) {
       existing.title = title;
       existing.projectId = d.projectId.value || null;
       existing.mode = mode;
       existing.progress = Number(d.progress.value);
       existing.milestones = milestones;
+      existing.parentId = parentId;
+      existing.horizon = horizon;
     } else {
       state.goals.push({
         id: uid("g"), title, projectId: d.projectId.value || null, mode,
-        progress: Number(d.progress.value), milestones, createdAt: new Date().toISOString()
+        progress: Number(d.progress.value), milestones, parentId, horizon,
+        confidence: null, sr: makeSR(14), createdAt: new Date().toISOString()
       });
     }
     save(); renderAll();
@@ -2221,6 +2741,10 @@ document.body.addEventListener("input", (e) => {
 
 /* Goal dialog: switch between manual % and milestone fields. */
 $("#goal-mode").addEventListener("change", syncGoalModeFields);
+
+/* Task dialog: live "what similar tasks took" hint. */
+$("#form-task").addEventListener("input", updateEstimateHint);
+$("#form-task").addEventListener("change", updateEstimateHint);
 
 /* Kanban drag-and-drop */
 document.body.addEventListener("dragstart", (e) => {

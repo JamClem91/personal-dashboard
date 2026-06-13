@@ -16,15 +16,23 @@ The entire app is one `index.html` with no dependencies, no build step, and no s
 - **Quick links** — pinned favorites on the home page; per-project links on each project tab.
 
 ### Plan & focus
-- **☀️ Today view** — daily planning mode: pick your **top 3 priorities** for the day, see what's due today and what's overdue, check off habits, and watch your focus time and tasks-done counters.
+- **☀️ Today view** — daily planning mode: pick your **top 3 priorities** for the day, see what's due today and what's overdue, check off habits, and watch your focus time and tasks-done counters. Warns you when the estimates you've planned exceed your daily capacity.
 - **📅 Calendar** — a month grid of every task due date, colour-coded by priority, with overdue days flagged. Click any task to edit it; page through months freely.
 - **⏱ Pomodoro focus timer** — start a focus session from any task (or a generic one from Today). A floating widget counts down work/break cycles with pause, resume, skip, and stop. Time is logged per task and per project.
-- **🪄 Weekly review** — a guided wizard that walks you through your week's summary, triaging the idea inbox, sweeping overdue tasks (reschedule to today or clear the date), and checking goal progress. A reminder dot appears on the Review button once a week.
+- **🪄 Weekly review** — a guided GTD wizard in three passes: **Get Clear** (empty the idea inbox to zero), **Get Current** (sweep overdue work, flag tasks not linked to a goal), and **Get Creative** (revisit goals and set a weekly confidence on each). A reminder dot appears on the Review button once a week.
+- **🎯 Implementation intentions** — give any task a *"when/where will you do this?"* cue, and anchor any habit to an existing routine (*"after I pour my morning coffee"*). Specifying the when/where is the single best-evidenced way to actually follow through.
+- **Personal OKRs** — nest goals into Objective → Key Result cascades with an optional horizon (annual / quarter / week), and link tasks to the goal they advance so you can see what actually ladders up.
+- **🔁 Resurfacing** — goals and ideas come back for a spaced-repetition check ("still relevant?") so they don't silently rot. Keep pushes the next check further out; snooze brings it back soon; mute stops it.
 
 ### Track & reflect
 - **Habit tracker** — daily check-offs with streak counters (an unchecked *today* doesn't break the streak until the day is over).
 - **Habit heatmap** — open any habit's history (▦ button) for a GitHub-style year grid plus current streak, best streak, total days, and 30-day consistency. Tap any past day to backfill or correct your history.
-- **📊 Stats** — tasks completed per week, completion velocity, open/overdue counts, busiest projects, focus time by project, and habit consistency — all rendered as lightweight bar charts.
+- **📊 Stats** — tasks completed per week and velocity, **estimation accuracy** (how your estimates compare to logged time), **most-productive hours and days** detected from your own history, **cycle time** (how long tasks take from created to done), busiest projects, focus time by project, and habit consistency.
+- **🔮 Finish forecasts** — each project runs a Monte-Carlo simulation over your recent completion pace to project a finish date as a confidence range ("85% confident by …"), instead of a single optimistic guess.
+- **Insights** — gentle, variance-aware nudges on Home: a dip in completions, an overdue pile-up, a long habit streak that just broke, or a day you've over-planned.
+- **✨ Year in review** — a Wrapped-style retrospective of your year: tasks completed, hours focused, longest streak, peak hour and day, and your most-focused project.
+
+The estimation, calibration, peak-time, cycle-time, forecasting, and OKR features were chosen from a cited research pass over what proven productivity systems and personal-analytics tools actually do — the load-bearing evidence is implementation intentions (if-then planning), the planning fallacy / reference-class forecasting, Little's-Law flow metrics, and the spacing effect.
 
 ### Polish
 - **Theme system** — dark/light toggle and an accent-colour picker (Settings ⚙️). Charts, buttons, and highlights follow your accent.
@@ -54,7 +62,7 @@ Because browsers can clear localStorage (storage pressure, "clear site data", pr
 
 ## Dev notes
 
-- The data schema is versioned (`schemaVersion` inside the stored object, currently **2**). Format changes go through the `migrate()` function in `index.html`, which is idempotent and back-fills new fields — so old (v1) backups stay importable and gain the new task fields (`stage`, `subtasks`, `secondsLogged`), per-project `view`, the `timeLog`, and the expanded `settings` automatically.
+- The data schema is versioned (`schemaVersion` inside the stored object, currently **3**). Format changes go through the `migrate()` function in `index.html`, which is idempotent and back-fills new fields — so old (v1/v2) backups stay importable and gain the newer fields automatically (task `stage`/`subtasks`/`secondsLogged`/`estimateMinutes`/`cue`/`goalId`, habit `cue`, goal `parentId`/`horizon`/`confidence`/`sr`, idea `sr`, per-project `view`, the `timeLog`, and the expanded `settings`).
 - State flow is deliberately simple: every mutation does *update state → save() → re-render the active view*. Events are delegated through `data-action` attributes — no per-element listeners to re-bind after renders.
 - The view router (`renderAll`) switches between the fixed tabs (`home`, `today`, `calendar`, `stats`) and one view per project id; the active tab is persisted in `settings.lastActiveTab`.
 - The focus timer ticks from a single `setInterval`; only phase transitions are persisted, so a reload mid-session resumes from the wall-clock end time.

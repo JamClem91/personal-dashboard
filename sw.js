@@ -1,6 +1,6 @@
 /* Personal Dashboard service worker.
    App-shell cache so the dashboard works fully offline. Bump CACHE on changes. */
-const CACHE = "dashboard-v1";
+const CACHE = "dashboard-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
